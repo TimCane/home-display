@@ -14,9 +14,16 @@ void on_wifi_event(WiFiEvent_t event, WiFiEventInfo_t /*info*/) {
         case ARDUINO_EVENT_WIFI_STA_GOT_IP:
             Serial.print("wifi: got ip ");
             Serial.println(WiFi.localIP());
+            // Tear down any prior responder before re-registering. After a
+            // reconnect, the previous MDNS instance is bound to a stale
+            // socket; without ::end() the new advertisement silently fails
+            // and <host>.local stops resolving.
+            MDNS.end();
             if (MDNS.begin(config::hostname)) {
                 MDNS.addService("http", "tcp", config::http_port);
                 Serial.printf("mdns: %s.local\n", config::hostname);
+            } else {
+                Serial.println("mdns: begin failed");
             }
             break;
         case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:

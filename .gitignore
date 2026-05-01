@@ -5,3 +5,5 @@ secrets.ini
 .piolibdeps/
 .vscode/
 .claude/**.local.**
+sample-code/
+tmp/

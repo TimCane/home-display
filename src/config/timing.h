@@ -9,6 +9,13 @@ constexpr unsigned long cooldown_ms = 5UL * 60UL * 1000UL;
 // we treat the panel as hung, sleep it, and force the state machine forward.
 constexpr unsigned long refresh_timeout_ms = 60UL * 1000UL;
 
+// Defensive backstop for clients that drop their TCP connection mid-upload.
+// AsyncWebServer's onDisconnect should clean these up promptly, but if the
+// callback ever doesn't fire we'd otherwise be wedged in UPLOADING forever.
+// 60 s is far longer than a healthy 163 KB POST takes (low single digits on
+// usable WiFi) so this only trips on actual stalls.
+constexpr unsigned long upload_stale_timeout_ms = 60UL * 1000UL;
+
 // Max time we wait for WiFi association at boot before giving up and rebooting.
 constexpr unsigned long wifi_connect_timeout_ms = 30UL * 1000UL;
 

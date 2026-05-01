@@ -1,6 +1,7 @@
 #include "epd.h"
 
 #include <SPI.h>
+#include <esp_task_wdt.h>
 
 #include "../config/pins.h"
 #include "../config/timing.h"
@@ -28,8 +29,17 @@ inline void write_data(uint8_t d) {
     cs(false);
 }
 
-void wait_idle() {
-    while (digitalRead(PIN_BUSY) == LOW) delay(1);
+// Returns true once BUSY rises, false if `timeout_ms` elapses first. Yields
+// the task on each iteration so the WDT and AsyncTCP keep ticking even when
+// the panel takes its full ~25 s to refresh.
+bool wait_idle(unsigned long timeout_ms = 5000) {
+    const unsigned long start = millis();
+    while (digitalRead(PIN_BUSY) == LOW) {
+        if (millis() - start >= timeout_ms) return false;
+        esp_task_wdt_reset();
+        vTaskDelay(1);
+    }
+    return true;
 }
 
 }  // namespace
@@ -46,12 +56,13 @@ void begin() {
 }
 
 void begin_frame() {
+    Serial.println("epd: begin_frame");
     SPI.beginTransaction(kSpiSettings);
 
     delay(100);
     rst(false); delay(10);
     rst(true);  delay(10);
-    wait_idle();
+    if (!wait_idle()) Serial.println("epd: WARN BUSY stuck LOW after reset");
 
     write_cmd(0x00); write_data(0x2F); write_data(0x29);
     write_cmd(0x01); write_data(0x07); write_data(0x00); write_data(0x20);
@@ -72,7 +83,7 @@ void begin_frame() {
     write_cmd(0x62); write_data(0x77); write_data(0x77); write_data(0x77); write_data(0x5C);
                      write_data(0x9F); write_data(0x8C); write_data(0x77); write_data(0x63);
     write_cmd(0x04);  // power on
-    wait_idle();
+    if (!wait_idle()) Serial.println("epd: WARN BUSY stuck LOW after PON");
 
     // Open the data window: 0x10 = "send frame data"; CS held LOW, DC=data
     // until end_frame(). All write_chunk() bytes stream through this window.
@@ -90,12 +101,25 @@ void end_frame() {
     SPI.endTransaction();
 }
 
-void start_refresh() {
+bool start_refresh() {
     SPI.beginTransaction(kSpiSettings);
     write_cmd(0x12);
     write_data(0x00);
     SPI.endTransaction();
-    // BUSY now goes LOW; caller polls is_busy() until it returns false.
+    // Block until BUSY drops. The ESP32 polls fast enough that without this
+    // the state machine would see "not busy" before the panel reacts.
+    const unsigned long start = millis();
+    while (digitalRead(PIN_BUSY) == HIGH) {
+        if (millis() - start >= 1000) {
+            Serial.println("epd: WARN BUSY did not drop after refresh");
+            return false;
+        }
+        esp_task_wdt_reset();
+        vTaskDelay(1);
+    }
+    Serial.printf("epd: refresh started after %lu ms\n",
+                  (unsigned long)(millis() - start));
+    return true;
 }
 
 bool is_busy() {
@@ -105,7 +129,7 @@ bool is_busy() {
 void sleep() {
     SPI.beginTransaction(kSpiSettings);
     write_cmd(0x02); write_data(0x00);  // power off
-    wait_idle();
+    if (!wait_idle()) Serial.println("epd: WARN BUSY stuck LOW after POF");
     write_cmd(0x07); write_data(0xA5);  // deep sleep
     SPI.endTransaction();
 }
