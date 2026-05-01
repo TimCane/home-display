@@ -1,0 +1,7 @@
+secrets.ini
+
+.pio/
+.pioenvs/
+.piolibdeps/
+.vscode/
+.claude/**.local.**
