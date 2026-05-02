@@ -9,8 +9,8 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "outDir": "dist/server",
-    "rootDir": "src/web/server",
+    "rootDir": "src/web",
     "types": ["node"]
   },
-  "include": ["src/web/server/**/*.ts"]
+  "include": ["src/web/server/**/*.ts", "src/web/shared/**/*.ts"]
 }
