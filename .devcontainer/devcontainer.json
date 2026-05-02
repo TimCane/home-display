@@ -1,0 +1,28 @@
+{
+  "name": "new-home-display",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bullseye",
+  "forwardPorts": [4321],
+  "portsAttributes": {
+    "4321": {
+      "label": "Application",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  "postCreateCommand": "npm install",
+  "postAttachCommand": "npm run dev",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "bradlc.vscode-tailwindcss",
+        "DavidAnson.vscode-markdownlint",
+        "anthropic.claude-code",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  },
+  "runArgs": ["--net=host"],
+  "features": {
+    "ghcr.io/timcane/devcontainer-features/claude-code-passthrough:latest": {}
+  }
+}
