@@ -1,0 +1,30 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3100:3100"
+    env_file: .env
+    environment:
+      NODE_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: display
+      POSTGRES_PASSWORD: display
+      POSTGRES_DB: home_display
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U display -d home_display"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:

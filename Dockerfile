@@ -1,0 +1,29 @@
+# ── deps ──────────────────────────────────────────────────────────
+FROM node:20-slim AS deps
+RUN corepack enable
+WORKDIR /app
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+# ── build ─────────────────────────────────────────────────────────
+FROM deps AS build
+COPY tsconfig.json tsconfig.server.json tsconfig.client.json vite.config.ts ./
+COPY src/web/ src/web/
+RUN pnpm build
+
+# ── runtime ───────────────────────────────────────────────────────
+FROM node:20-slim AS runtime
+RUN corepack enable
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile --prod
+
+COPY --from=build /app/dist dist
+COPY docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
+
+ENV NODE_ENV=production
+EXPOSE 3100
+
+ENTRYPOINT ["./docker-entrypoint.sh"]
