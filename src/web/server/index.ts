@@ -14,6 +14,15 @@ const app = new Hono();
 // Health check (public, no auth)
 app.get("/api/health", (c) => c.json({ ok: true }));
 
+// Mock display — dev only
+if (process.env.NODE_ENV !== "production") {
+  const { mockDisplay, initMockDisplay } = await import(
+    "./mock-display/index.js"
+  );
+  app.route("/mock-display", mockDisplay);
+  initMockDisplay();
+}
+
 // Auth routes
 app.route("/api/auth", authRoutes);
 

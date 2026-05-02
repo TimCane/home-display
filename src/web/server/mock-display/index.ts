@@ -1,0 +1,61 @@
+import { Hono } from "hono";
+import { getSetting } from "../config/settings.js";
+import { getState, pushFrame, startTick } from "./state.js";
+
+const EXPECTED_BODY_SIZE = 163_200;
+
+const mockDisplay = new Hono();
+
+/**
+ * Verify bearer token against the display_token setting.
+ */
+async function verifyToken(authHeader: string | undefined): Promise<boolean> {
+  if (!authHeader) return false;
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+  const expected = await getSetting("display_token");
+  return token === expected;
+}
+
+// GET /status — return current mock display state
+mockDisplay.get("/status", async (c) => {
+  if (!(await verifyToken(c.req.header("authorization")))) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  return c.json(getState());
+});
+
+// POST /fb — accept a framebuffer push
+mockDisplay.post("/fb", async (c) => {
+  if (!(await verifyToken(c.req.header("authorization")))) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  const contentLength = Number(c.req.header("content-length") ?? 0);
+  if (contentLength !== EXPECTED_BODY_SIZE) {
+    return c.json(
+      { error: `Expected Content-Length ${EXPECTED_BODY_SIZE}, got ${contentLength}` },
+      400
+    );
+  }
+
+  const body = await c.req.arrayBuffer();
+  if (body.byteLength !== EXPECTED_BODY_SIZE) {
+    return c.json(
+      { error: `Expected body size ${EXPECTED_BODY_SIZE}, got ${body.byteLength}` },
+      400
+    );
+  }
+
+  const status = pushFrame(Buffer.from(body));
+  return c.json({ status });
+});
+
+/**
+ * Initialize the mock display (start background tick).
+ */
+export function initMockDisplay(): void {
+  startTick();
+  console.log("[mock-display] Mock display server active");
+}
+
+export { mockDisplay };

@@ -37,7 +37,20 @@ export async function boot(): Promise<void> {
   await seedAndValidateSettings();
   console.log("[boot] app_settings seeded and validated");
 
-  // 6. Reserved for later steps:
+  // 6. Dev-only: point display_base_url at the in-process mock display
+  if (process.env.NODE_ENV !== "production") {
+    const { getSetting, setSetting } = await import("./config/settings.js");
+    const currentUrl = await getSetting("display_base_url");
+    const port = Number(process.env.PORT) || 3100;
+    const mockUrl = `http://localhost:${port}/mock-display`;
+    // Only override if still at the default value (never been customised)
+    if (currentUrl === "http://localhost:7000") {
+      await setSetting("display_base_url", mockUrl);
+      console.log(`[boot] display_base_url set to mock: ${mockUrl}`);
+    }
+  }
+
+  // 7. Reserved for later steps:
   //    - Start node-cron with scheduler_cron
   //    - Register generator_instances crons
   //    - Start HTTP server (handled by caller)
