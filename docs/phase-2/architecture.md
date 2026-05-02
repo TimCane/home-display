@@ -45,7 +45,7 @@ Single domain. Routing:
 
 | Path | Audience | Auth |
 |---|---|---|
-| `/g/<uuid>` | Guests with a link | Link UUID = bearer |
+| `/editor/<uuid>` | Whoever has the link (guests for guest-mode drafts, admins for non-guest) | UUID-as-bearer; admin session also required for non-guest drafts |
 | `/api/trpc/*` | Browser RPC | Session cookie |
 | `/api/auth/*` | OAuth callback | — |
 | `/*` (everything else) | Admin | GitHub OAuth, allowlisted |

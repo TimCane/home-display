@@ -20,23 +20,32 @@ The library of things the panel can show. One row = one displayable image.
 | `base_weight` | int | Default 1. Used by scheduler scoring. |
 | `conditions` | jsonb | Array of `{type, params}`. AND-ed. See [scheduler.md](scheduler.md). |
 | `first_view_boost` | int | Extra weight applied while `last_shown_at IS NULL` |
-| `expires_at` | timestamptz nullable | Auto-becomes ineligible after this |
+| `display_until` | timestamptz nullable | Auto-becomes ineligible after this date — stops being shown on the panel |
 | `last_shown_at` | timestamptz nullable | Updated on every successful push *and* on every tick the entry is locked. |
 | `show_count` | int | Diagnostics |
 
-Generator-owned entries: the plugin owns `title` and `framebuffer`. The admin owns `enabled`, `conditions`, `base_weight`, `expires_at`. Direct deletion of generator-owned entries is blocked in the UI — delete the generator instance to cascade.
+Generator-owned entries: the plugin owns `title` and `framebuffer`. The admin owns `enabled`, `conditions`, `base_weight`, `display_until`. Direct deletion of generator-owned entries is blocked in the UI — delete the generator instance to cascade.
 
-### `guest_links`
+### `entry_drafts`
+
+A pending editor session. Both admin self-creation and guest-shared submission flow through this table. The `guest_mode` flag determines element filtering, the modal post-save UX, and an extra admin-session gate. See [entry-drafts.md](entry-drafts.md).
 
 | Column | Type | Notes |
 |---|---|---|
-| `id` | uuid | PK; this *is* the link slug |
+| `id` | uuid | PK; this *is* the URL slug |
 | `created_at` | timestamptz | |
-| `expires_at` | timestamptz | 24h from creation |
+| `expires_at` | timestamptz | 24h from creation — the draft's TTL, distinct from `display_until` |
 | `consumed_at` | timestamptz nullable | Set on submission. Also set by manual revoke. |
-| `preset_options` | jsonb | `{duration?, enabled, base_weight, conditions, expires_at?, first_view_boost, allowed_elements, submitter_name}` |
+| `guest_mode` | bool | Drives element filter, modal UX, and auth gate |
+| `submitter_name` | text nullable | Required when `guest_mode = true`, null otherwise |
+| `allowed_elements` | jsonb | Subset of editor element types. Default `["image_upload"]`. Meaningful only when `guest_mode = true`. |
+| `enabled` | bool | Preset for the eventual entry, default `true` |
+| `base_weight` | int | Preset, default 1 |
+| `conditions` | jsonb | Preset, default `[]` |
+| `display_until` | timestamptz nullable | Preset; becomes the entry's `display_until` at commit |
+| `first_view_boost` | int | Preset |
 
-Link is valid until `consumed_at IS NOT NULL` or `now() > expires_at`, whichever first.
+Draft is valid until `consumed_at IS NOT NULL` or `now() > expires_at`, whichever first. On commit, preset columns are copied into the new `entries` row, `consumed_at` is set, and `entries.source = guest_mode ? 'guest' : 'admin'`.
 
 ### `generator_instances`
 

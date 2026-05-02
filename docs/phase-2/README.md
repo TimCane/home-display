@@ -26,7 +26,7 @@ The firmware (phase 1) is unchanged. It still owns the panel, the refresh contra
 - [Scheduler](scheduler.md) — tick, conditions, lock, "display now"
 - [Generators](generators.md) — plugin model, weather + calendar V1
 - [Editor](editor.md) — canvas, dither, palette, desktop vs mobile
-- [Guest links](guest-links.md) — lifecycle, sharing, submission
+- [Entry drafts](entry-drafts.md) — modal, lifecycle, sharing, drafts list
 - [Push delivery](push-delivery.md) — retry, confirmation, offline detection
 - [Auth](auth.md) — GitHub OAuth, allowlists, routing
 - [Config](config.md) — env-vs-DB split, `app_settings`

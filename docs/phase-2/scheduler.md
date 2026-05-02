@@ -17,7 +17,7 @@ on tick:
     return
   candidates = entries WHERE
       enabled = true
-      AND (expires_at IS NULL OR expires_at > now())
+      AND (display_until IS NULL OR display_until > now())
       AND id != system_state.currently_displayed_entry_id
       AND every condition in conditions matches now()
   if candidates is empty:

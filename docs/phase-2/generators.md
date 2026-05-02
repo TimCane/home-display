@@ -46,7 +46,7 @@ Plugins are registered at boot. Adding a new plugin = code change + deploy.
 |---|---|
 | `framebuffer` | Plugin (rewrites on cron) |
 | `title` | Plugin (derived from `instance_name` + renderer) |
-| `enabled`, `conditions`, `base_weight`, `expires_at`, `first_view_boost` | Admin (via normal entry edit UI) |
+| `enabled`, `conditions`, `base_weight`, `display_until`, `first_view_boost` | Admin (via normal entry edit UI) |
 
 Generator entries appear in the main entry list with a badge ("owned by `weather:home-today`") and no direct delete button. The "Generators" admin page is where instances are created and removed.
 

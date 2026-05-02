@@ -2,6 +2,8 @@
 
 Two editors share a common rendering core: a desktop canvas tool and a simplified mobile editor. Both produce a 163,200-byte 2bpp framebuffer for storage; nothing else is retained. Re-editing requires re-creating from scratch.
 
+Editor sessions are reached via `/editor/<uuid>`, where the UUID identifies a draft created from the admin modal — see [entry-drafts.md](entry-drafts.md). The draft's `guest_mode` flag, if set, restricts the editor to the draft's `allowed_elements` regardless of which editor variant the viewport selects. The title is set on the editor page itself (required to commit).
+
 ## Shared pipeline
 
 ```
@@ -58,9 +60,9 @@ V1 capability:
 - Live dithered preview
 - Submit
 
-No layers panel, no shapes, no rotation, no icons. The mobile editor and the guest submission page share most of their UI.
+No layers panel, no shapes, no rotation, no icons.
 
-The desktop editor route shows "Use a larger screen for the full editor" on narrow viewports and offers the mobile editor as the alternative.
+The `/editor/<uuid>` route picks variant by viewport: desktop editor on wide viewports, mobile editor on narrow ones. Guests on phones get the mobile editor; guests on laptops get the desktop editor with elements filtered by the draft's `allowed_elements`.
 
 ## Dither
 
