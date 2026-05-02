@@ -19,6 +19,7 @@
     "@trpc/server": "^11.17.0",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.16",
+    "node-cron": "^4.2.1",
     "pg": "^8.20.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
@@ -27,6 +28,7 @@
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
+    "@types/node-cron": "^3.0.11",
     "@types/pg": "^8.20.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

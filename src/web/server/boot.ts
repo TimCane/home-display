@@ -3,6 +3,7 @@ import { db, pool } from "./db/index.js";
 import { seedSystemState } from "./db/seed.js";
 import { parseEnv } from "./config/env.js";
 import { seedAndValidateSettings } from "./config/settings.js";
+import { startHealthCron } from "./health/cron.js";
 
 /**
  * Full startup sequence:
@@ -50,7 +51,11 @@ export async function boot(): Promise<void> {
     }
   }
 
-  // 7. Reserved for later steps:
+  // 7. Start health-check cron
+  await startHealthCron();
+  console.log("[boot] Health-check cron started");
+
+  // 8. Reserved for later steps:
   //    - Start node-cron with scheduler_cron
   //    - Register generator_instances crons
   //    - Start HTTP server (handled by caller)
