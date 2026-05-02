@@ -16,8 +16,14 @@ The DESPI-C02 DIP switch must be set to the SSD-series RESE position (0.47 Ω) f
 
 ## Design docs
 
+### Phase 1 — firmware
+
 - [Wire format](wire-format.md) — what bytes go on the wire
 - [API](api.md) — endpoints, auth, status JSON
 - [Refresh contract](refresh-contract.md) — state machine, cooldown, coalescing
 - [Firmware](firmware.md) — build, flags, driver, memory, discovery
 - [Out of scope](out-of-scope.md) — explicitly rejected options
+
+### Phase 2 — web interface
+
+- [Phase 2 overview](phase-2/README.md) — scheduler, editor, generators, guest links
