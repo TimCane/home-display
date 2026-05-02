@@ -43,6 +43,62 @@ The backend is a single Node container that serves the tRPC API at `/api/*` and 
 
 Single domain. Auth/routing rules: see [auth.md](auth.md#routing-matrix).
 
+## Surface
+
+The full set of URLs the backend serves. Auth gates for each path live in [auth.md](auth.md#routing-matrix); this section is the catalog.
+
+### Admin SPA pages
+
+All require admin session. Middleware on `/*` (excluding `/editor/*` and `/api/*`) bounces unauthenticated requests to `/api/auth/login`.
+
+| Path | Purpose |
+|---|---|
+| `/` | Dashboard — current display, online/offline indicator, manual flag toggles, "lock to current" / "unlock" |
+| `/entries` | Entries list — library view, edit metadata (`enabled`, `base_weight`, `conditions`), "display now," "lock to this," delete |
+| `/drafts` | Drafts list — see [entry-drafts.md](entry-drafts.md#drafts-list-page) |
+| `/generators` | Generator instances — one tab per registered plugin, create/edit/delete instances, "run now" |
+| `/settings` | `app_settings` editor — palette, scheduler cron, timezone, health-check cadence, weight constants, display URL/token |
+| `/diagnostics` | See [ops.md](ops.md#diagnostics-page) |
+
+### Editor / public pages
+
+| Path | Purpose | Auth |
+|---|---|---|
+| `/editor/<uuid>` | Authoring surface for one draft | UUID; admin session also required for non-guest drafts |
+
+### Backend HTTP endpoints (non-tRPC)
+
+| Path | Method | Purpose |
+|---|---|---|
+| `/api/auth/login` | GET | Begin GitHub OAuth |
+| `/api/auth/callback` | GET | OAuth callback |
+| `/api/auth/logout` | POST | Clear session |
+| `/api/health` | GET | Public; returns `{ok: true}` for Coolify |
+| `/api/sse/system` | GET | Server-Sent Events stream for live `system_state` updates (online/offline, lock, currently displayed). Admin session. |
+| `/api/framebuffer/<entry_id>` | GET | Raw 163,200-byte payload for client-side decode (preview tiles, current-display view). Admin session. |
+
+### tRPC routers
+
+Mounted at `/api/trpc/<router>.<procedure>`. All require admin session unless noted. Naming convention: singular noun + verb.
+
+| Router | Procedures |
+|---|---|
+| `entry` | `list`, `get`, `update`, `delete`, `displayNow` |
+| `draft` | `create`, `list`, `get`, `revoke`, `commit` (`get` and `commit` accept the UUID-as-bearer path; admin session is required only when the draft is non-guest — see [auth.md](auth.md#editor-auth--uuid-as-bearer--optional-admin-gate)) |
+| `generator` | `listPlugins`, `listInstances`, `createInstance`, `updateInstance`, `deleteInstance`, `runNow`, `recentRuns` |
+| `settings` | `getAll`, `set` |
+| `system` | `lock`, `unlock`, `setFlag`, `pushTestPattern` |
+| `diagnostics` | `recentPushes`, `statusHistory`, `latestStatus`, `generatorRuns` |
+
+Adding a procedure = code change in `src/web/server/trpc/`; no infrastructure change.
+
+### Backend → firmware (egress)
+
+| Path | Method | Notes |
+|---|---|---|
+| `<display_base_url>/fb` | POST | 163,200-byte body, bearer token. See [push-delivery.md](push-delivery.md). |
+| `<display_base_url>/status` | GET | Bearer token. See [push-delivery.md#health-checks](push-delivery.md#health-checks). |
+
 ## Repo layout
 
 The phase-1 firmware moves under `src/firmware/`. The web app lives under `src/web/`. Shared at the repo root: `package.json` (web), `platformio.ini` (firmware), `docker-compose.yml`, `Dockerfile`, top-level `docs/`.
