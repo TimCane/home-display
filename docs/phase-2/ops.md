@@ -75,5 +75,6 @@ Single admin route showing everything operational:
 - No external log aggregation (Loki / Better Stack / Axiom). Coolify container logs only.
 - No metrics (Prometheus). Push log + status history are the only structured time-series.
 - No alerting on offline / failed pushes. Watch the dashboard.
+- No retention / GC on `push_log`, `display_status_history`, `generator_runs`, `entry_drafts`. All grow forever. The chatty ones (`display_status_history` ~105k rows/year at default 5-min cadence; `generator_runs` scales with instance count × cron rate) will be the first to hurt. Add a nightly prune job when dashboard queries get slow.
 
 These are intentional V1 constraints. Revisit when the manual checking feels burdensome.

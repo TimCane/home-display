@@ -41,14 +41,7 @@ The backend is a single Node container that serves the tRPC API at `/api/*` and 
                                     (home LAN)
 ```
 
-Single domain. Routing:
-
-| Path | Audience | Auth |
-|---|---|---|
-| `/editor/<uuid>` | Whoever has the link (guests for guest-mode drafts, admins for non-guest) | UUID-as-bearer; admin session also required for non-guest drafts |
-| `/api/trpc/*` | Browser RPC | Session cookie |
-| `/api/auth/*` | OAuth callback | — |
-| `/*` (everything else) | Admin | GitHub OAuth, allowlisted |
+Single domain. Auth/routing rules: see [auth.md](auth.md#routing-matrix).
 
 ## Repo layout
 

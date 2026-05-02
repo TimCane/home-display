@@ -35,7 +35,7 @@ Plugins are registered at boot. Adding a new plugin = code change + deploy.
 3. On each cron firing:
    - Plugin's fetcher runs.
    - Plugin's renderer produces a framebuffer.
-   - Backend writes `entries.framebuffer` and bumps an internal `framebuffer_updated_at` (used by the `recently_updated` condition).
+   - Backend writes `entries.framebuffer`; `updated_at` bumps as a side-effect (drives the `recently_updated` condition).
    - A row is inserted in `generator_runs` (succeeded or error).
 4. On instance update (config changed): re-register cron, optionally trigger an immediate run.
 5. On instance delete: cascade-delete the owned entry, unregister cron.
@@ -46,7 +46,7 @@ Plugins are registered at boot. Adding a new plugin = code change + deploy.
 |---|---|
 | `framebuffer` | Plugin (rewrites on cron) |
 | `title` | Plugin (derived from `instance_name` + renderer) |
-| `enabled`, `conditions`, `base_weight`, `display_until`, `first_view_boost` | Admin (via normal entry edit UI) |
+| `enabled`, `conditions`, `base_weight` | Admin (via normal entry edit UI) |
 
 Generator entries appear in the main entry list with a badge ("owned by `weather:home-today`") and no direct delete button. The "Generators" admin page is where instances are created and removed.
 

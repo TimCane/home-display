@@ -2,7 +2,7 @@
 
 Two editors share a common rendering core: a desktop canvas tool and a simplified mobile editor. Both produce a 163,200-byte 2bpp framebuffer for storage; nothing else is retained. Re-editing requires re-creating from scratch.
 
-Editor sessions are reached via `/editor/<uuid>`, where the UUID identifies a draft created from the admin modal — see [entry-drafts.md](entry-drafts.md). The draft's `guest_mode` flag, if set, restricts the editor to the draft's `allowed_elements` regardless of which editor variant the viewport selects. The title is set on the editor page itself (required to commit).
+Editor sessions are reached via `/editor/<uuid>`, where the UUID identifies a draft created from the admin modal — see [entry-drafts.md](entry-drafts.md). The draft's `guest_mode` flag, if set, restricts the editor to the draft's `allowed_elements` regardless of which editor variant the viewport selects. The title is set on the editor page itself (required to commit). Auth rules for `/editor/<uuid>` live in [auth.md](auth.md#editor-auth--uuid-as-bearer--optional-admin-gate).
 
 ## Shared pipeline
 

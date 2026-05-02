@@ -4,13 +4,18 @@ How a chosen entry's framebuffer gets from the backend to the firmware. The firm
 
 ## Push triggers
 
-| Source | Trigger |
-|---|---|
-| Scheduler tick | Winner picked and differs from currently displayed |
-| Lock change | New lock target |
-| "Display now" button | Per-entry one-shot |
+Canonical list of every event the backend considers, and whether it pushes.
 
-Generator regeneration does *not* push. It updates the entry's framebuffer and leaves it for the next scheduler tick.
+| Event | Pushes? | Notes |
+|---|---|---|
+| Scheduler tick (winner picked) | Yes | Winner differs from currently displayed by construction (same-entry-no-repeat) |
+| Lock change | Yes | Push the new lock target |
+| "Display now" button | Yes | Per-entry one-shot; bypasses scheduling rules |
+| Entry created | No | Waits for next tick |
+| Entry framebuffer updated (e.g. generator regen) | No | Waits for next tick |
+| Health check sees panel offline → online | No | Waits for next tick |
+
+Rationale for the "No" rows: the firmware has a 5-min cooldown and bistable pixels — extra pushes waste refreshes and shorten panel life. Let the next tick decide.
 
 ## Push attempt
 
@@ -74,11 +79,4 @@ When the panel is offline:
 
 ## Surfaced in admin UI
 
-| Surface | Source |
-|---|---|
-| Online/offline indicator | `system_state.display_online`, live via SSE |
-| Last successful push time | `push_log` filtered by `succeeded=true` |
-| Recent push history | `push_log` last N rows |
-| Hardware concern flag | `last_refresh_timed_out` from latest `/status` poll |
-| WiFi RSSI / free heap / uptime | `display_status_history` latest row |
-| "Push test pattern" | Diagnostics page button — pushes a 4-quadrant solid color frame for palette calibration |
+These signals (online/offline, last push, push history, hardware concern flag, WiFi/heap/uptime, test-pattern button) are surfaced on the diagnostics page — see [ops.md](ops.md#diagnostics-page).

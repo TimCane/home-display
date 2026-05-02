@@ -11,20 +11,19 @@ The library of things the panel can show. One row = one displayable image.
 | Column | Type | Notes |
 |---|---|---|
 | `id` | uuid | PK |
-| `source` | text | `admin` \| `guest` \| `generator:<plugin_name>` |
+| `source` | text | `admin` \| `guest` \| `generator`. For generator entries the owning plugin/instance is recoverable via `generator_instances.entry_id`. |
 | `title` | text | Admin-facing label |
 | `submitter_name` | text nullable | Guest source only; admin-set at link creation, immutable |
 | `framebuffer` | bytea | Exactly 163,200 bytes. Immutable for admin/guest entries. Generators rewrite their own. |
 | `created_at` | timestamptz | |
+| `updated_at` | timestamptz | Bumped on any row mutation (framebuffer rewrite, admin field edit, etc.). Drives the `recently_updated` condition. |
 | `enabled` | bool | Admin toggle |
 | `base_weight` | int | Default 1. Used by scheduler scoring. |
-| `conditions` | jsonb | Array of `{type, params}`. AND-ed. See [scheduler.md](scheduler.md). |
-| `first_view_boost` | int | Extra weight applied while `last_shown_at IS NULL` |
-| `display_until` | timestamptz nullable | Auto-becomes ineligible after this date — stops being shown on the panel |
+| `conditions` | jsonb | Array of `{type, params}`. AND-ed. See [scheduler.md](scheduler.md). A periodic sweep auto-disables the entry when its conditions imply it can never match again (e.g. a `date_range` with `to` in the past). |
 | `last_shown_at` | timestamptz nullable | Updated on every successful push *and* on every tick the entry is locked. |
-| `show_count` | int | Diagnostics |
+| `show_count` | int | Default 0. Bumped on every successful push. Drives the global first-view boost (`show_count == 0` → `app_settings.first_view_boost` added to score). |
 
-Generator-owned entries: the plugin owns `title` and `framebuffer`. The admin owns `enabled`, `conditions`, `base_weight`, `display_until`. Direct deletion of generator-owned entries is blocked in the UI — delete the generator instance to cascade.
+Generator-owned entries: the plugin owns `title` and `framebuffer`. The admin owns `enabled`, `conditions`, `base_weight`. Direct deletion of generator-owned entries is blocked in the UI — delete the generator instance to cascade.
 
 ### `entry_drafts`
 
@@ -34,7 +33,7 @@ A pending editor session. Both admin self-creation and guest-shared submission f
 |---|---|---|
 | `id` | uuid | PK; this *is* the URL slug |
 | `created_at` | timestamptz | |
-| `expires_at` | timestamptz | 24h from creation — the draft's TTL, distinct from `display_until` |
+| `expires_at` | timestamptz | 24h from creation — the draft's TTL (controls when the editor link stops working, not when the resulting entry stops being eligible) |
 | `consumed_at` | timestamptz nullable | Set on submission. Also set by manual revoke. |
 | `guest_mode` | bool | Drives element filter, modal UX, and auth gate |
 | `submitter_name` | text nullable | Required when `guest_mode = true`, null otherwise |
@@ -42,10 +41,8 @@ A pending editor session. Both admin self-creation and guest-shared submission f
 | `enabled` | bool | Preset for the eventual entry, default `true` |
 | `base_weight` | int | Preset, default 1 |
 | `conditions` | jsonb | Preset, default `[]` |
-| `display_until` | timestamptz nullable | Preset; becomes the entry's `display_until` at commit |
-| `first_view_boost` | int | Preset |
 
-Draft is valid until `consumed_at IS NOT NULL` or `now() > expires_at`, whichever first. On commit, preset columns are copied into the new `entries` row, `consumed_at` is set, and `entries.source = guest_mode ? 'guest' : 'admin'`.
+Draft is valid until `consumed_at IS NOT NULL` or `now() > expires_at`, whichever first. On commit, preset columns are copied into the new `entries` row, `show_count` is initialized to `0` (so the global first-view boost applies), `consumed_at` is set, and `entries.source = guest_mode ? 'guest' : 'admin'`. Note: `expires_at` controls the editor-link lifetime only and has no effect on the resulting entry's eligibility — that's purely conditions-driven.
 
 ### `generator_instances`
 
@@ -83,18 +80,7 @@ Generic key-value config so adding new settings does not require a migration. Ap
 | `value` | jsonb | |
 | `updated_at` | timestamptz | |
 
-Known V1 keys:
-
-| Key | Shape | Default |
-|---|---|---|
-| `palette` | `{black, white, yellow, red}` (RGB hex strings) | Vendor sample values |
-| `scheduler_cron` | string | `*/30 * * * *` |
-| `app_tz` | string (IANA) | `Europe/London` |
-| `health_check_minutes` | int | 5 |
-| `display_base_url` | string | (set per deploy) |
-| `display_token` | string | Must match firmware's compile-time `EPD_TOKEN` |
-
-See [config.md](config.md) for the full env-vs-DB split.
+Current keys, shapes, and defaults: see [config.md](config.md#db-app_settings-keys). That doc is also where the env-vs-DB split lives.
 
 ### `push_log`
 
@@ -133,6 +119,20 @@ Per-run log for generator instances. Forever retention.
 | `ran_at` | timestamptz | |
 | `succeeded` | bool | |
 | `error` | text nullable | |
+
+## Entry creation paths
+
+Three sources, two paths:
+
+| Source | Path | Notes |
+|---|---|---|
+| Admin self-authored | `entry_drafts` (one-click modal) → `/editor/<uuid>` → INSERT into `entries` on commit | Draft `guest_mode = false`. Editor link gated by admin session. |
+| Guest submission | `entry_drafts` (admin opens modal with `guest entry` checked, shares link) → `/editor/<uuid>` → INSERT into `entries` on commit | Draft `guest_mode = true`. Link is the only credential. |
+| Generator | `generator_instances` row created → placeholder INSERT into `entries` immediately → cron rewrites `framebuffer` on schedule | No draft, no editor. The instance owns the entry; cascade delete removes it. |
+
+Why generators skip drafts: drafts model an authoring handoff (one human, one editor session, optional sharing). Generators have no human authoring step, so the draft machinery is ceremony with no payoff.
+
+Why drafts and entries are not unified: `entries.framebuffer` is `NOT NULL` and CHECKed at 163,200 bytes — that invariant lets the scheduler trust every entry is pushable. Folding drafts in would make `framebuffer` nullable, require a `status` enum on every query, and leave draft-only columns (`expires_at`, `consumed_at`, `guest_mode`, `allowed_elements`) sitting nullable on every active entry forever.
 
 ## Conventions
 

@@ -26,11 +26,20 @@ App-side Zod schemas validate `value` on read and write. Defaults applied if a k
 | `scheduler_cron` | string (cron expression) | `*/30 * * * *` | Reload affects next tick |
 | `app_tz` | string (IANA timezone) | `Europe/London` | Used by condition evaluators and generators |
 | `health_check_minutes` | int | `5` | Cadence of `/status` polling |
+| `first_view_boost` | int | `10` | Score bump applied when `entries.show_count == 0`. See [scheduler.md](scheduler.md#decay-function). |
+| `decay_half_life_hours` | int | `12` | Time constant in the recency-decay formula. See [scheduler.md](scheduler.md#decay-function). |
 | `display_base_url` | string | (set per deploy) | Points at firmware via Cloudflare tunnel, or at the dev mock server |
 | `display_token` | string | (set per deploy) | Bearer for firmware. Must match firmware compile-time `EPD_TOKEN`. |
-| `flags` | `{<flag_name>: bool}` | `{}` | Stored on `system_state.flags`, not `app_settings`. Listed here for reference. |
 
 Per-instance generator config lives in `generator_instances.config`, not `app_settings`.
+
+## Other runtime-mutable state (not in `app_settings`)
+
+Some state is admin-mutable at runtime but lives outside `app_settings` because of access patterns:
+
+| State | Storage | Shape | Default | Notes |
+|---|---|---|---|---|
+| `flags` | `system_state.flags` | `{<flag_name>: bool}` | `{}` | Toggled frequently from the dashboard; read on every condition eval. Used by `manual_flag` conditions. |
 
 ## UI surfaces
 

@@ -15,7 +15,7 @@ No `entries` row exists until the editor commits.
 5. Editor page (`/editor/<uuid>`) loads. Auth gate: see [Auth](#auth).
 6. Whoever's editing (guest or admin) sets the title, builds the image, previews dithered output, submits.
 7. On successful submission:
-   - `entries` row is created with `source = guest_mode ? 'guest' : 'admin'`, the dithered framebuffer, the title, and presets copied from the draft (`enabled`, `base_weight`, `conditions`, `display_until`, `first_view_boost`, `submitter_name`).
+   - `entries` row is created with `source = guest_mode ? 'guest' : 'admin'`, the dithered framebuffer, the title, and presets copied from the draft (`enabled`, `base_weight`, `conditions`, `submitter_name`). `show_count` initializes to `0`, so the global first-view boost applies on first eligibility.
    - `entry_drafts.consumed_at = now()`.
 8. Subsequent visits to `/editor/<uuid>` show "this link has already been used."
 
@@ -38,9 +38,7 @@ The modal opens lean. Title is *not* set here — it's set on the editor page it
 |---|---|---|
 | `enabled` | `true` | If `false`, submitted entry lands disabled — soft-approval path |
 | `base_weight` | 1 | |
-| `conditions` | `[]` | Same condition types as admin entries |
-| `display_until` | null (configurable default e.g. `+7 days`) | Becomes the entry's `display_until` |
-| `first_view_boost` | configurable, default e.g. `+10` | Extra weight while unshown |
+| `conditions` | `[]` | Same condition types as admin entries. A stop-date is a `date_range` condition with just `to` set; the auto-disable sweep flips `enabled = false` once `to` is in the past. |
 
 **Guest-mode only (revealed when `guest entry` is checked):**
 
@@ -68,16 +66,7 @@ A guest on a laptop sees the desktop editor with most tools hidden by `allowed_e
 
 ## Auth
 
-The link UUID *is* the bearer credential. Two layers:
-
-| Draft type | Load `/editor/<uuid>` | Commit |
-|---|---|---|
-| `guest_mode = true` | UUID-as-bearer; admin session ignored | UUID-as-bearer |
-| `guest_mode = false` | UUID-as-bearer **+** admin session required | UUID-as-bearer + admin session required |
-
-Non-guest drafts require an admin session at *both* page load (the draft-fetch endpoint) and commit. The load-time gate prevents a recipient of an accidentally-shared non-guest URL from wasting time in the editor; the commit-time gate is the security backstop.
-
-If admin shares a non-guest URL with someone, they bounce to the login page on load. If admin shares a guest URL, the recipient gets in regardless.
+The link UUID *is* the bearer credential; non-guest drafts additionally require an admin session at both load and commit. Full gate matrix and rationale: see [auth.md](auth.md#editor-auth--uuid-as-bearer--optional-admin-gate).
 
 Drafts are minted by `POST /api/trpc/draft.create`, which itself requires admin session.
 
