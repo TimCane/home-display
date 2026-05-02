@@ -9,6 +9,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { systemState } from "../db/schema.js";
 import { pushFrame } from "../push/push-frame.js";
+import { emitSystemEvent } from "../events.js";
 
 export async function setLock(entryId: string): Promise<void> {
   const [state] = await db
@@ -31,6 +32,11 @@ export async function setLock(entryId: string): Promise<void> {
         .where(eq(systemState.id, 1));
     }
   }
+
+  emitSystemEvent({
+    type: "lock_change",
+    payload: { lockEntryId: entryId },
+  });
 }
 
 export async function clearLock(): Promise<void> {
@@ -38,4 +44,9 @@ export async function clearLock(): Promise<void> {
     .update(systemState)
     .set({ lockEntryId: null })
     .where(eq(systemState.id, 1));
+
+  emitSystemEvent({
+    type: "lock_change",
+    payload: { lockEntryId: null },
+  });
 }

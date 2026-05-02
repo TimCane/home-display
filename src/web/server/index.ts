@@ -8,6 +8,8 @@ import { spaBounce } from "./auth/middleware.js";
 import { appRouter } from "./trpc/index.js";
 import { createContext } from "./trpc/context.js";
 import { getEnv } from "./config/env.js";
+import { framebufferRoute } from "./http/framebuffer.js";
+import { sseSystemRoute } from "./http/sse-system.js";
 
 const app = new Hono();
 
@@ -25,6 +27,12 @@ if (process.env.NODE_ENV !== "production") {
 
 // Auth routes
 app.route("/api/auth", authRoutes);
+
+// Framebuffer download endpoint
+app.route("/api/framebuffer", framebufferRoute);
+
+// SSE system events
+app.route("/api/sse/system", sseSystemRoute);
 
 // tRPC — mounted at /api/trpc
 app.use("/api/trpc/*", async (c) => {

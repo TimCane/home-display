@@ -9,6 +9,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { entries, systemState } from "../db/schema.js";
 import { pushFrame } from "../push/push-frame.js";
+import { emitSystemEvent } from "../events.js";
 
 export async function displayNow(entryId: string): Promise<void> {
   // Verify entry exists (no enabled / conditions check)
@@ -44,5 +45,10 @@ export async function displayNow(entryId: string): Promise<void> {
       .update(entries)
       .set({ lastShownAt: new Date() })
       .where(eq(entries.id, entryId));
+
+    emitSystemEvent({
+      type: "displayed_entry",
+      payload: { entryId },
+    });
   }
 }

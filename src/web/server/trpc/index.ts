@@ -1,5 +1,14 @@
 import { router } from "./trpc.js";
+import { entryRouter } from "./routers/entry.js";
+import { systemRouter } from "./routers/system.js";
+import { settingsRouter } from "./routers/settings.js";
+import { diagnosticsRouter } from "./routers/diagnostics.js";
 
-export const appRouter = router({});
+export const appRouter = router({
+  entry: entryRouter,
+  system: systemRouter,
+  settings: settingsRouter,
+  diagnostics: diagnosticsRouter,
+});
 
 export type AppRouter = typeof appRouter;

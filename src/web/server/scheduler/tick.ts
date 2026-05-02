@@ -13,6 +13,7 @@ import { evaluateAll, type Condition } from "../../shared/conditions.js";
 import { scoreEntry } from "./score.js";
 import { weightedRandom, type ScoredCandidate } from "./select.js";
 import { pushFrame } from "../push/push-frame.js";
+import { emitSystemEvent } from "../events.js";
 
 export async function tick(): Promise<void> {
   const [state] = await db
@@ -111,6 +112,11 @@ export async function tick(): Promise<void> {
       .update(systemState)
       .set({ currentlyDisplayedEntryId: winner.id })
       .where(eq(systemState.id, 1));
+
+    emitSystemEvent({
+      type: "displayed_entry",
+      payload: { entryId: winner.id },
+    });
 
     console.log(`[scheduler] Pushed entry ${winner.id}`);
   } else {

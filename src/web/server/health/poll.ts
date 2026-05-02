@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { displayStatusHistory, systemState } from "../db/schema.js";
 import { getSetting } from "../config/settings.js";
+import { emitSystemEvent } from "../events.js";
 
 // Change listeners for SSE (step 13)
 type DisplayStatusListener = (online: boolean) => void;
@@ -62,6 +63,11 @@ export async function poll(): Promise<void> {
     for (const fn of statusListeners) {
       fn(reachable);
     }
+
+    emitSystemEvent({
+      type: "display_online",
+      payload: { online: reachable },
+    });
 
     console.log(
       `[health] Display transitioned to ${reachable ? "online" : "offline"}`
