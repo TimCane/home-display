@@ -1,12 +1,48 @@
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
+import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { boot } from "./boot.js";
+import { authRoutes } from "./auth/oauth.js";
+import { spaBounce } from "./auth/middleware.js";
+import { appRouter } from "./trpc/index.js";
+import { createContext } from "./trpc/context.js";
+import { getEnv } from "./config/env.js";
 
 const app = new Hono();
 
-// Health check
+// Health check (public, no auth)
 app.get("/api/health", (c) => c.json({ ok: true }));
+
+// Auth routes
+app.route("/api/auth", authRoutes);
+
+// tRPC — mounted at /api/trpc
+app.use("/api/trpc/*", async (c) => {
+  // CSRF: check Origin on mutations
+  const method = c.req.method;
+  if (method === "POST") {
+    const origin = c.req.header("origin");
+    if (origin) {
+      const expected = new URL(getEnv().APP_BASE_URL).origin;
+      if (origin !== expected) {
+        return c.json({ error: "CSRF origin mismatch" }, 403);
+      }
+    }
+  }
+
+  const response = await fetchRequestHandler({
+    endpoint: "/api/trpc",
+    req: c.req.raw,
+    router: appRouter,
+    createContext,
+  });
+  return response;
+});
+
+// SPA bounce — redirect unauthenticated users to login
+// Must come after /api/* routes so they aren't affected
+app.use("/*", spaBounce);
 
 // In production, serve the built React SPA
 if (process.env.NODE_ENV === "production") {
