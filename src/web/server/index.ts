@@ -1,7 +1,7 @@
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
-import { seedSystemState } from "./db/seed.js";
+import { boot } from "./boot.js";
 
 const app = new Hono();
 
@@ -18,7 +18,7 @@ if (process.env.NODE_ENV === "production") {
 const port = Number(process.env.PORT) || 3100;
 
 async function main() {
-  await seedSystemState();
+  await boot();
   console.log(`Server listening on http://localhost:${port}`);
   serve({ fetch: app.fetch, port });
 }
