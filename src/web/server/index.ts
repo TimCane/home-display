@@ -9,6 +9,7 @@ import { appRouter } from "./trpc/index.js";
 import { createContext } from "./trpc/context.js";
 import { getEnv } from "./config/env.js";
 import { framebufferRoute } from "./http/framebuffer.js";
+import { draftCommitRoute } from "./http/draft-commit.js";
 import { sseSystemRoute } from "./http/sse-system.js";
 
 const app = new Hono();
@@ -30,6 +31,9 @@ app.route("/api/auth", authRoutes);
 
 // Framebuffer download endpoint
 app.route("/api/framebuffer", framebufferRoute);
+
+// Draft commit — raw-bytes framebuffer upload
+app.route("/api/draft", draftCommitRoute);
 
 // SSE system events
 app.route("/api/sse/system", sseSystemRoute);
