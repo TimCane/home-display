@@ -11,8 +11,10 @@ import {
   Pencil,
   X,
   Check,
+  Plus,
 } from "lucide-react";
 import type { Condition } from "../../shared/conditions";
+import { useLayoutContext } from "../layout/Layout";
 
 interface EntryRow {
   id: string;
@@ -50,6 +52,7 @@ function sourceBadge(source: string) {
 }
 
 export function EntriesPage() {
+  const { openCreateModal } = useLayoutContext();
   const entries = trpc.entry.list.useQuery();
   const utils = trpc.useUtils();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -68,7 +71,13 @@ export function EntriesPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Entries</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Entries</h1>
+        <Button onClick={openCreateModal}>
+          <Plus className="mr-2 h-4 w-4" />
+          New entry
+        </Button>
+      </div>
       {entries.isLoading && <p className="text-muted-foreground">Loading...</p>}
       {entries.data && entries.data.length === 0 && (
         <p className="text-muted-foreground">No entries yet.</p>

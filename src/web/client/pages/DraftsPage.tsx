@@ -2,7 +2,8 @@ import { useState } from "react";
 import { trpc } from "../trpc";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { Copy, QrCode, Ban } from "lucide-react";
+import { Copy, QrCode as QrCodeIcon, Ban } from "lucide-react";
+import { QrCode } from "../components/QrCode";
 
 const FILTERS = ["unconsumed", "consumed", "expired", "all"] as const;
 type DraftFilter = (typeof FILTERS)[number];
@@ -131,7 +132,7 @@ export function DraftsPage() {
                               }
                               title="Show QR code"
                             >
-                              <QrCode className="h-4 w-4" />
+                              <QrCodeIcon className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
@@ -159,14 +160,18 @@ export function DraftsPage() {
       {/* QR Code display */}
       {qrDraftId && (
         <Card>
-          <CardContent className="pt-6">
-            <p className="mb-2 text-sm font-medium">Editor URL:</p>
-            <code className="block break-all rounded bg-muted p-2 text-xs">
-              {editorUrl(qrDraftId)}
-            </code>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Share this URL or scan with a phone to open the editor. QR
-              rendering will be added in step 19.
+          <CardContent className="pt-6 space-y-3">
+            <div className="flex justify-center">
+              <QrCode value={editorUrl(qrDraftId)} size={200} />
+            </div>
+            <div>
+              <p className="mb-1 text-sm font-medium">Editor URL:</p>
+              <code className="block break-all rounded bg-muted p-2 text-xs">
+                {editorUrl(qrDraftId)}
+              </code>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Share this URL or scan the QR code to open the editor.
             </p>
           </CardContent>
         </Card>
