@@ -3,7 +3,8 @@ import type { GeneratorPlugin } from "./types.js";
 const plugins = new Map<string, GeneratorPlugin>();
 
 /** Register a plugin at boot. Throws on duplicate name. */
-export function registerPlugin(plugin: GeneratorPlugin): void {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function registerPlugin(plugin: GeneratorPlugin<any>): void {
   if (plugins.has(plugin.name)) {
     throw new Error(`Generator plugin "${plugin.name}" already registered`);
   }

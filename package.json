@@ -15,11 +15,13 @@
   },
   "dependencies": {
     "@hono/node-server": "^2.0.1",
+    "@napi-rs/canvas": "^0.1.100",
     "@trpc/client": "^11.17.0",
     "@trpc/server": "^11.17.0",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.16",
     "node-cron": "^4.2.1",
+    "node-ical": "^0.26.1",
     "pg": "^8.20.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
