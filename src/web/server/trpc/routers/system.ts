@@ -9,6 +9,15 @@ import { pushFrame } from "../../push/push-frame.js";
 import { encode2bpp, WIDTH, HEIGHT, TOTAL_PIXELS, FRAME_BYTES } from "../../../shared/framebuffer.js";
 
 export const systemRouter = router({
+  /** Current system_state row. */
+  getState: adminProcedure.query(async () => {
+    const [state] = await db
+      .select()
+      .from(systemState)
+      .where(eq(systemState.id, 1));
+    return state;
+  }),
+
   /** Pin display to an entry. */
   lock: adminProcedure
     .input(z.object({ entryId: z.string().uuid() }))
