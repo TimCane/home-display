@@ -5,6 +5,7 @@ import { parseEnv } from "./config/env.js";
 import { seedAndValidateSettings } from "./config/settings.js";
 import { startHealthCron } from "./health/cron.js";
 import { startSchedulerCron } from "./scheduler/cron.js";
+import { bootInstances } from "./generators/runtime.js";
 
 /**
  * Full startup sequence:
@@ -60,7 +61,7 @@ export async function boot(): Promise<void> {
   await startSchedulerCron();
   console.log("[boot] Scheduler cron started");
 
-  // 9. Reserved for later steps:
-  //    - Register generator_instances crons
-  //    - Start HTTP server (handled by caller)
+  // 9. Load generator instances and register their crons
+  await bootInstances();
+  console.log("[boot] Generator instance crons started");
 }
