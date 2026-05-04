@@ -1,6 +1,6 @@
 # Push delivery
 
-How a chosen entry's framebuffer gets from the backend to the firmware. The firmware's contract is in [../api.md](../api.md) and [../refresh-contract.md](../refresh-contract.md) — this doc covers the backend-side behaviour.
+How a chosen entry's framebuffer gets from the backend to the firmware. The firmware's contract is in [api.md](api.md) and [refresh-contract.md](refresh-contract.md) — this doc covers the backend-side behaviour.
 
 ## Push triggers
 

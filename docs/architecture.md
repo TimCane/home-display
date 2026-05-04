@@ -101,7 +101,7 @@ Adding a procedure = code change in `src/web/server/trpc/`; no infrastructure ch
 
 ## Repo layout
 
-The phase-1 firmware moves under `src/firmware/`. The web app lives under `src/web/`. Shared at the repo root: `package.json` (web), `platformio.ini` (firmware), `docker-compose.yml`, `Dockerfile`, top-level `docs/`.
+The firmware lives under `src/firmware/`. The web app lives under `src/web/`. Shared at the repo root: `package.json` (web), `platformio.ini` (firmware), `docker-compose.yml`, `Dockerfile`, top-level `docs/`.
 
 ```
 new-home-display/
@@ -112,7 +112,7 @@ new-home-display/
   docker-compose.yml        # node + postgres
   platformio.ini            # firmware (src_dir=src/firmware, test_dir=test/firmware)
   src/
-    firmware/               # phase 1, moved
+    firmware/               # ESP32 firmware
       main.cpp
       app/ display/ http/ net/ persist/ config/
     web/
@@ -136,13 +136,13 @@ new-home-display/
         conditions.ts       # zod schemas + evaluators
         palette.ts
   test/
-    firmware/               # phase 1 Unity tests, moved
+    firmware/               # Unity tests (firmware)
     web/                    # Vitest, dither + framebuffer tests only
   docs/
     README.md
     api.md wire-format.md refresh-contract.md firmware.md out-of-scope.md
     hardware/
-    phase-2/                # this directory
+    steps/                  # ordered build steps
 ```
 
 `src/web/shared/` is load-bearing: anything that *must* match between client and server (dither, palette, framebuffer encode, condition schemas) lives here. Importing it from both sides guarantees they can't drift.

@@ -63,7 +63,7 @@ There is no graceful handoff -- the display will be unreachable between the toke
 
 ## Observability (V1 gaps)
 
-The following are accepted gaps in V1 per `docs/phase-2/ops.md`:
+The following are accepted gaps in V1 per `docs/ops.md`:
 
 - No external log aggregation (logs go to stdout only).
 - No metrics or dashboards beyond the in-app Diagnostics page.
