@@ -6,6 +6,7 @@
 
 import type { Layer } from "../state/types";
 import type { Palette } from "../../../../shared/palette";
+import { loadIconNode, getIconNodeSync } from "../lucide-icon-data";
 
 /** Cache loaded images so we don't re-decode every frame */
 const imageCache = new Map<string, HTMLImageElement>();
@@ -106,9 +107,7 @@ export function renderLayer(
     }
 
     case "icon":
-      // Icons rendered as text using Lucide name — we'll draw a placeholder
-      // with the icon name. Full Lucide SVG rendering below.
-      renderIcon(ctx, layer, palette);
+      renderIcon(ctx, layer, palette, onImageLoad);
       break;
   }
 
@@ -205,17 +204,157 @@ function renderIcon(
   ctx: CanvasRenderingContext2D,
   layer: Layer & { type: "icon" },
   palette: Palette,
+  onImageLoad: () => void,
 ) {
-  // Draw icon as a bordered box with the icon SVG rendered inside
-  // We use a simple approach: draw the Lucide icon path via an offscreen SVG
   const color = paletteToCSS(palette, layer.colorIndex);
-  ctx.fillStyle = color;
-  ctx.font = `${Math.min(layer.width, layer.height)}px Inter, sans-serif`;
-  ctx.textBaseline = "middle";
-  ctx.textAlign = "center";
-  // Render a unicode placeholder or the icon name
-  ctx.fillText("◆", layer.x + layer.width / 2, layer.y + layer.height / 2);
-  ctx.textAlign = "start";
+  const iconNode = getIconNodeSync(layer.iconName);
+
+  if (!iconNode) {
+    // Trigger async load and request re-render
+    loadIconNode(layer.iconName).then((node) => {
+      if (node) onImageLoad();
+    });
+    // Draw placeholder while loading
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(layer.x, layer.y, layer.width, layer.height);
+    ctx.fillStyle = color;
+    ctx.font = "10px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(
+      layer.iconName,
+      layer.x + layer.width / 2,
+      layer.y + layer.height / 2,
+    );
+    ctx.textAlign = "start";
+    return;
+  }
+
+  // Render the actual Lucide SVG paths, scaled to fit the layer bounds.
+  // Lucide icons use a 24x24 viewBox with stroke-based drawing.
+  ctx.save();
+  ctx.translate(layer.x, layer.y);
+  ctx.scale(layer.width / 24, layer.height / 24);
+
+  ctx.strokeStyle = color;
+  ctx.fillStyle = "none";
+  ctx.lineWidth = 2;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  for (const [tag, attrs] of iconNode) {
+    drawSvgElement(ctx, tag, attrs, color);
+  }
+
+  ctx.restore();
+}
+
+/**
+ * Draw a single SVG element (path, circle, rect, line, polyline, polygon, ellipse)
+ * onto a Canvas 2D context. Assumes the context is already set up with
+ * the correct stroke/fill and scaled to the 24x24 coordinate system.
+ */
+function drawSvgElement(
+  ctx: CanvasRenderingContext2D,
+  tag: string,
+  attrs: Record<string, string>,
+  color: string,
+) {
+  switch (tag) {
+    case "path": {
+      const d = attrs.d;
+      if (!d) break;
+      const p = new Path2D(d);
+      if (attrs.fill && attrs.fill !== "none") {
+        ctx.fillStyle = attrs.fill === "currentColor" ? color : attrs.fill;
+        ctx.fill(p);
+      }
+      ctx.stroke(p);
+      break;
+    }
+    case "circle": {
+      const cx = parseFloat(attrs.cx ?? "0");
+      const cy = parseFloat(attrs.cy ?? "0");
+      const r = parseFloat(attrs.r ?? "0");
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      if (attrs.fill && attrs.fill !== "none") {
+        ctx.fillStyle = attrs.fill === "currentColor" ? color : attrs.fill;
+        ctx.fill();
+      }
+      ctx.stroke();
+      break;
+    }
+    case "rect": {
+      const x = parseFloat(attrs.x ?? "0");
+      const y = parseFloat(attrs.y ?? "0");
+      const w = parseFloat(attrs.width ?? "0");
+      const h = parseFloat(attrs.height ?? "0");
+      const rx = parseFloat(attrs.rx ?? "0");
+      if (rx > 0) {
+        const p = new Path2D();
+        p.roundRect(x, y, w, h, rx);
+        if (attrs.fill && attrs.fill !== "none") {
+          ctx.fillStyle = attrs.fill === "currentColor" ? color : attrs.fill;
+          ctx.fill(p);
+        }
+        ctx.stroke(p);
+      } else {
+        if (attrs.fill && attrs.fill !== "none") {
+          ctx.fillStyle = attrs.fill === "currentColor" ? color : attrs.fill;
+          ctx.fillRect(x, y, w, h);
+        }
+        ctx.strokeRect(x, y, w, h);
+      }
+      break;
+    }
+    case "line": {
+      const x1 = parseFloat(attrs.x1 ?? "0");
+      const y1 = parseFloat(attrs.y1 ?? "0");
+      const x2 = parseFloat(attrs.x2 ?? "0");
+      const y2 = parseFloat(attrs.y2 ?? "0");
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      break;
+    }
+    case "polyline":
+    case "polygon": {
+      const points = (attrs.points ?? "")
+        .trim()
+        .split(/[\s,]+/)
+        .map(Number);
+      if (points.length < 4) break;
+      ctx.beginPath();
+      ctx.moveTo(points[0], points[1]);
+      for (let i = 2; i < points.length; i += 2) {
+        ctx.lineTo(points[i], points[i + 1]);
+      }
+      if (tag === "polygon") ctx.closePath();
+      if (attrs.fill && attrs.fill !== "none") {
+        ctx.fillStyle = attrs.fill === "currentColor" ? color : attrs.fill;
+        ctx.fill();
+      }
+      ctx.stroke();
+      break;
+    }
+    case "ellipse": {
+      const cx = parseFloat(attrs.cx ?? "0");
+      const cy = parseFloat(attrs.cy ?? "0");
+      const rx = parseFloat(attrs.rx ?? "0");
+      const ry = parseFloat(attrs.ry ?? "0");
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+      if (attrs.fill && attrs.fill !== "none") {
+        ctx.fillStyle = attrs.fill === "currentColor" ? color : attrs.fill;
+        ctx.fill();
+      }
+      ctx.stroke();
+      break;
+    }
+  }
 }
 
 /**

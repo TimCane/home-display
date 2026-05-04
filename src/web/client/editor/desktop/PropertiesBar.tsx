@@ -6,6 +6,7 @@
 import { useEditorStore } from "./state/store";
 import type { Layer } from "./state/types";
 import { DEFAULT_PALETTE } from "../../../shared/palette";
+import { IconPicker } from "./IconPicker";
 
 function ColorPicker({
   value,
@@ -170,15 +171,9 @@ export function PropertiesBar() {
       )}
 
       {layer.type === "icon" && (
-        <input
-          type="text"
+        <IconPicker
           value={layer.iconName}
-          onChange={(e) =>
-            update({ iconName: e.target.value } as Partial<Layer>)
-          }
-          className="w-24 rounded border bg-background px-1 py-0.5 text-xs"
-          placeholder="Icon name"
-          title="Lucide icon name"
+          onChange={(name) => update({ iconName: name } as Partial<Layer>)}
         />
       )}
     </div>
