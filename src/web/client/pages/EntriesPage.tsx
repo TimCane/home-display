@@ -166,7 +166,7 @@ function EntryTableRow({
         <FramebufferImage
           entryId={entry.id}
           updatedAt={entry.updatedAt}
-          className="w-24 rounded"
+          className="w-[120px] rounded"
         />
       </td>
       <td className="py-2 pr-4 font-medium">{entry.title}</td>

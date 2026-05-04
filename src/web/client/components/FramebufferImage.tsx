@@ -82,7 +82,7 @@ export function FramebufferImage({
     <canvas
       ref={canvasRef}
       className={cn("rounded", className)}
-      style={{ width: "100%", height: "auto", aspectRatio: `${WIDTH}/${HEIGHT}` }}
+      style={{ height: "auto", aspectRatio: `${WIDTH}/${HEIGHT}` }}
     />
   );
 }
