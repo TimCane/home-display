@@ -11,7 +11,7 @@ Bug fixes and improvements to address before finalising.
 | 3 | [Hardcoded framebuffer size magic numbers](003-framebuffer-magic-numbers.md) | Low | Open |
 | 4 | [as any casts on tRPC errors](004-trpc-error-types.md) | Low | Open |
 | 8 | [Entry preview too big on entries page](008-entry-preview-too-big.md) | Medium | Open |
-| 10 | [Allowed elements mismatch between UI and backend](010-allowed-elements-mismatch.md) | High | Open |
+| 10 | [Allowed elements mismatch between UI and backend](010-allowed-elements-mismatch.md) | High | Done |
 | 11 | [Cannot read properties of undefined (reading 'parseICS')](011-ical-parseics-undefined.md) | High | Open |
 | 13 | [Text expands outside selection area and resizing doesn't change font size](013-text-ignores-layer-bounds.md) | High | Open |
 | 14 | [Icons are hard to use — no search and no live preview](014-icon-picker-and-preview.md) | High | Open |

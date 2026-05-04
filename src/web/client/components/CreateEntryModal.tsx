@@ -19,6 +19,16 @@ const ELEMENT_OPTIONS: readonly AllowedElement[] = [
   "icon",
 ] as const;
 
+/** Friendly labels for the allowed-element toggle buttons. */
+const ELEMENT_LABELS: Record<AllowedElement, string> = {
+  image_upload: "Image",
+  text: "Text",
+  rect: "Rectangle",
+  line: "Line",
+  circle: "Circle",
+  icon: "Icon",
+};
+
 interface CreateEntryModalProps {
   open: boolean;
   onClose: () => void;
@@ -154,8 +164,9 @@ export function CreateEntryModal({ open, onClose }: CreateEntryModalProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Guest mode toggle */}
-          <label className="flex items-center gap-2 text-sm">
+          <label htmlFor="create-entry-guest-mode" className="flex items-center gap-2 text-sm">
             <input
+              id="create-entry-guest-mode"
               type="checkbox"
               checked={guestMode}
               onChange={(e) => setGuestMode(e.target.checked)}
@@ -202,7 +213,7 @@ export function CreateEntryModal({ open, onClose }: CreateEntryModalProps) {
                             : "bg-background text-muted-foreground hover:bg-accent"
                         }`}
                       >
-                        {el.replace(/_/g, " ")}
+                        {ELEMENT_LABELS[el]}
                       </button>
                     );
                   })}
@@ -227,8 +238,9 @@ export function CreateEntryModal({ open, onClose }: CreateEntryModalProps) {
           {showAdvanced && (
             <div className="space-y-3 rounded border p-3">
               <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 text-sm">
+                <label htmlFor="create-entry-enabled" className="flex items-center gap-2 text-sm">
                   <input
+                    id="create-entry-enabled"
                     type="checkbox"
                     checked={enabled}
                     onChange={(e) => setEnabled(e.target.checked)}
