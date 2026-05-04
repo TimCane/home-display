@@ -66,9 +66,7 @@ export function renderLayer(
 
     case "text":
       ctx.fillStyle = paletteToCSS(palette, layer.colorIndex);
-      ctx.font = `${layer.fontSize}px ${layer.fontFamily}`;
-      ctx.textBaseline = "top";
-      ctx.fillText(layer.text, layer.x, layer.y);
+      renderAutoFitText(ctx, layer);
       break;
 
     case "rect":
@@ -115,6 +113,92 @@ export function renderLayer(
   }
 
   ctx.restore();
+}
+
+/**
+ * Word-wrap text to fit within a given width at the specified font size.
+ * Returns an array of lines.
+ */
+function wrapText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+): string[] {
+  const words = text.split(/\s+/);
+  if (words.length === 0) return [""];
+
+  const lines: string[] = [];
+  let currentLine = words[0];
+
+  for (let i = 1; i < words.length; i++) {
+    const testLine = currentLine + " " + words[i];
+    const metrics = ctx.measureText(testLine);
+    if (metrics.width > maxWidth) {
+      lines.push(currentLine);
+      currentLine = words[i];
+    } else {
+      currentLine = testLine;
+    }
+  }
+  lines.push(currentLine);
+  return lines;
+}
+
+/**
+ * Render text auto-fitted within the layer's bounding box.
+ * Uses binary search to find the largest font size where the
+ * word-wrapped text fits within layer.width x layer.height.
+ */
+function renderAutoFitText(
+  ctx: CanvasRenderingContext2D,
+  layer: Layer & { type: "text" },
+): void {
+  const { x, y, width, height, text, fontFamily } = layer;
+  if (!text.trim() || width <= 0 || height <= 0) return;
+
+  // Binary search for the largest font size that fits
+  let lo = 1;
+  let hi = Math.max(height, 200); // upper bound
+  let bestSize = lo;
+
+  while (lo <= hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    ctx.font = `${mid}px ${fontFamily}`;
+    const lines = wrapText(ctx, text, width);
+    const lineHeight = mid * 1.2;
+    const totalHeight = lines.length * lineHeight;
+
+    // Check that all lines fit width and total height fits
+    let fitsWidth = true;
+    for (const line of lines) {
+      if (ctx.measureText(line).width > width) {
+        fitsWidth = false;
+        break;
+      }
+    }
+
+    if (fitsWidth && totalHeight <= height) {
+      bestSize = mid;
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
+    }
+  }
+
+  // Draw with the best size found
+  const fontSize = bestSize;
+  ctx.font = `${fontSize}px ${fontFamily}`;
+  ctx.textBaseline = "top";
+  const lines = wrapText(ctx, text, width);
+  const lineHeight = fontSize * 1.2;
+  const totalHeight = lines.length * lineHeight;
+
+  // Vertically center the text block within the bounding box
+  const startY = y + (height - totalHeight) / 2;
+
+  for (let i = 0; i < lines.length; i++) {
+    ctx.fillText(lines[i], x, startY + i * lineHeight);
+  }
 }
 
 function renderIcon(
