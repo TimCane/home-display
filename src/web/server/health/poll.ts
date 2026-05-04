@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, lt, sql } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { displayStatusHistory, systemState } from "../db/schema.js";
 import { getSetting } from "../config/settings.js";
@@ -71,5 +71,24 @@ export async function poll(): Promise<void> {
     });
 
     logger.info({ online: reachable }, "Display status transitioned");
+  }
+}
+
+/**
+ * Delete display_status_history rows older than 90 days.
+ */
+export async function pruneStatusHistory(): Promise<void> {
+  const result = await db
+    .delete(displayStatusHistory)
+    .where(
+      lt(
+        displayStatusHistory.polledAt,
+        sql`NOW() - INTERVAL '90 days'`,
+      ),
+    );
+
+  const deleted = result.rowCount ?? 0;
+  if (deleted > 0) {
+    logger.info({ deleted }, "Pruned old status history rows");
   }
 }

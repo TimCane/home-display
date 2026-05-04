@@ -1,9 +1,10 @@
 import * as cron from "node-cron";
 import { getSetting, onSettingChange } from "../config/settings.js";
-import { poll } from "./poll.js";
+import { poll, pruneStatusHistory } from "./poll.js";
 import { logger } from "../logger.js";
 
 let task: cron.ScheduledTask | null = null;
+let pruneTask: cron.ScheduledTask | null = null;
 
 function cronExpr(minutes: number): string {
   return `*/${minutes} * * * *`;
@@ -22,6 +23,15 @@ export async function startHealthCron(): Promise<void> {
       register(value as number);
     }
   });
+
+  // Daily prune of status history rows older than 90 days (runs at 03:00)
+  pruneTask = cron.schedule("0 3 * * *", () => {
+    pruneStatusHistory().catch((err) => {
+      logger.error({ err }, "Status history prune error");
+    });
+  });
+
+  logger.info({ expr: "0 3 * * *" }, "Status history prune cron registered");
 }
 
 function register(minutes: number): void {
@@ -47,5 +57,9 @@ export function stopHealthCron(): void {
   if (task) {
     task.stop();
     task = null;
+  }
+  if (pruneTask) {
+    pruneTask.stop();
+    pruneTask = null;
   }
 }
