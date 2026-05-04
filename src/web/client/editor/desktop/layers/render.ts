@@ -210,7 +210,7 @@ function renderIcon(
   // We use a simple approach: draw the Lucide icon path via an offscreen SVG
   const color = paletteToCSS(palette, layer.colorIndex);
   ctx.fillStyle = color;
-  ctx.font = `${Math.min(layer.width, layer.height)}px sans-serif`;
+  ctx.font = `${Math.min(layer.width, layer.height)}px Inter, sans-serif`;
   ctx.textBaseline = "middle";
   ctx.textAlign = "center";
   // Render a unicode placeholder or the icon name

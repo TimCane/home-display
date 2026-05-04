@@ -21,6 +21,7 @@ RUN pnpm install --frozen-lockfile --prod
 
 COPY --from=build /app/dist dist
 COPY src/web/server/db/migrations src/web/server/db/migrations
+COPY src/web/server/fonts/*.ttf dist/server/fonts/
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 

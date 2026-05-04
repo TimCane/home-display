@@ -37,7 +37,7 @@ export async function render5Day(
 
   // Title
   ctx.fillStyle = black;
-  ctx.font = "bold 36px sans-serif";
+  ctx.font = "bold 36px Inter";
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
   ctx.fillText(`${data.calendarName} — 5-Day Agenda`, 40, 30);
@@ -66,7 +66,7 @@ export async function render5Day(
     });
 
     ctx.fillStyle = black;
-    ctx.font = "bold 26px sans-serif";
+    ctx.font = "bold 26px Inter";
     ctx.textAlign = "left";
     ctx.fillText(dayLabel, 40, y);
     y += 8;
@@ -82,7 +82,7 @@ export async function render5Day(
 
     if (events.length === 0) {
       ctx.fillStyle = black;
-      ctx.font = "italic 22px sans-serif";
+      ctx.font = "italic 22px Inter";
       ctx.fillText("No events", 60, y);
       y += lineHeight + 6;
       continue;
@@ -93,7 +93,7 @@ export async function render5Day(
     for (const evt of events) {
       if (y >= maxY) {
         ctx.fillStyle = black;
-        ctx.font = "italic 20px sans-serif";
+        ctx.font = "italic 20px Inter";
         ctx.fillText("...", 60, y);
         break;
       }
@@ -112,12 +112,12 @@ export async function render5Day(
       }
 
       ctx.fillStyle = red;
-      ctx.font = "bold 22px sans-serif";
+      ctx.font = "bold 22px Inter";
       ctx.fillText(timeStr, 60, y);
 
       // Summary
       ctx.fillStyle = black;
-      ctx.font = "22px sans-serif";
+      ctx.font = "22px Inter";
       const maxTextWidth = WIDTH - 240;
       let summary = evt.summary;
       while (ctx.measureText(summary).width > maxTextWidth && summary.length > 3) {
@@ -133,7 +133,7 @@ export async function render5Day(
 
   if (!hasAnyEvents && keys.length > 0) {
     ctx.fillStyle = black;
-    ctx.font = "36px sans-serif";
+    ctx.font = "36px Inter";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("No events in the next 5 days", WIDTH / 2, HEIGHT / 2);

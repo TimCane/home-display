@@ -8,6 +8,8 @@ import { dither } from "../../shared/dither.js";
 import { type Palette } from "../../shared/palette.js";
 import { getSetting } from "../config/settings.js";
 
+export { DISPLAY_FONT } from "../fonts/index.js";
+
 /** Create a 960x680 canvas. */
 export function createFrame(): Canvas {
   return createCanvas(WIDTH, HEIGHT);
@@ -116,7 +118,7 @@ export function drawWeatherIcon(
 
     default:
       // Fallback: question mark
-      ctx.font = `${size * 0.5}px sans-serif`;
+      ctx.font = `${size * 0.5}px Inter`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText("?", cx, cy);

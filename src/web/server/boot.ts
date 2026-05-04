@@ -7,6 +7,7 @@ import { startHealthCron } from "./health/cron.js";
 import { startSchedulerCron } from "./scheduler/cron.js";
 import { bootInstances } from "./generators/runtime.js";
 import { registerBuiltins } from "./generators/index.js";
+import { registerFonts } from "./fonts/index.js";
 import { logger } from "./logger.js";
 
 /**
@@ -63,11 +64,15 @@ export async function boot(): Promise<void> {
   await startSchedulerCron();
   logger.info("Scheduler cron started");
 
-  // 9. Register built-in generator plugins
+  // 9. Register bundled fonts for canvas rendering
+  registerFonts();
+  logger.info("Fonts registered");
+
+  // 10. Register built-in generator plugins
   registerBuiltins();
   logger.info("Built-in generator plugins registered");
 
-  // 10. Load generator instances and register their crons
+  // 11. Load generator instances and register their crons
   await bootInstances();
   logger.info("Generator instance crons started");
 }

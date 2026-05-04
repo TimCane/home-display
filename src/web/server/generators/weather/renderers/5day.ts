@@ -38,7 +38,7 @@ export async function render5Day(
 
   // Title
   ctx.fillStyle = black;
-  ctx.font = "bold 36px sans-serif";
+  ctx.font = "bold 36px Inter";
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
   ctx.fillText(`${config.location.name} — 5-Day Forecast`, 40, 30);
@@ -73,12 +73,12 @@ export async function render5Day(
     });
 
     ctx.fillStyle = black;
-    ctx.font = "bold 28px sans-serif";
+    ctx.font = "bold 28px Inter";
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     ctx.fillText(dayName, x + cardWidth / 2, cardTop + 20);
 
-    ctx.font = "22px sans-serif";
+    ctx.font = "22px Inter";
     ctx.fillText(dateStr, x + cardWidth / 2, cardTop + 55);
 
     // Weather icon
@@ -95,11 +95,11 @@ export async function render5Day(
 
     // Condition label
     const { label } = weatherLabel(day.weatherCode);
-    ctx.font = "20px sans-serif";
+    ctx.font = "20px Inter";
     ctx.fillText(label, x + cardWidth / 2, cardTop + 100 + iconSize + 15);
 
     // High / Low
-    ctx.font = "bold 30px sans-serif";
+    ctx.font = "bold 30px Inter";
     ctx.fillStyle = red;
     ctx.fillText(
       `${Math.round(day.high)}${unitSymbol}`,
@@ -108,7 +108,7 @@ export async function render5Day(
     );
 
     ctx.fillStyle = black;
-    ctx.font = "26px sans-serif";
+    ctx.font = "26px Inter";
     ctx.fillText(
       `${Math.round(day.low)}${unitSymbol}`,
       x + cardWidth / 2,
@@ -118,7 +118,7 @@ export async function render5Day(
 
   if (days.length === 0) {
     ctx.fillStyle = black;
-    ctx.font = "36px sans-serif";
+    ctx.font = "36px Inter";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("No forecast data available", WIDTH / 2, HEIGHT / 2);

@@ -38,14 +38,14 @@ export async function renderToday(
 
   // Location name
   ctx.fillStyle = black;
-  ctx.font = "bold 36px sans-serif";
+  ctx.font = "bold 36px Inter";
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
   ctx.fillText(config.location.name, 40, 30);
 
   // Current temperature (big)
   const unitSymbol = config.units === "imperial" ? "°F" : "°C";
-  ctx.font = "bold 140px sans-serif";
+  ctx.font = "bold 140px Inter";
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
   ctx.fillText(`${Math.round(data.current.temperature)}${unitSymbol}`, 40, 80);
@@ -53,12 +53,12 @@ export async function renderToday(
   // Weather condition icon + label
   const { label, icon } = weatherLabel(data.current.weatherCode);
   drawWeatherIcon(ctx, icon, 560, 80, 120, black);
-  ctx.font = "bold 36px sans-serif";
+  ctx.font = "bold 36px Inter";
   ctx.textAlign = "center";
   ctx.fillText(label, 620, 210);
 
   // High / Low
-  ctx.font = "32px sans-serif";
+  ctx.font = "32px Inter";
   ctx.textAlign = "left";
   ctx.fillStyle = red;
   ctx.fillText(`H: ${Math.round(data.today.high)}°`, 560, 270);
@@ -74,7 +74,7 @@ export async function renderToday(
     month: "short",
   });
   ctx.fillStyle = black;
-  ctx.font = "28px sans-serif";
+  ctx.font = "28px Inter";
   ctx.textAlign = "left";
   ctx.fillText(dateStr, 560, 320);
 
@@ -115,7 +115,7 @@ export async function renderToday(
 
     // Hour labels (every 3 hours)
     ctx.fillStyle = black;
-    ctx.font = "20px sans-serif";
+    ctx.font = "20px Inter";
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     for (let i = 0; i < data.hourly.length; i += 3) {
@@ -141,7 +141,7 @@ export async function renderToday(
 
   // "Hourly" label
   ctx.fillStyle = black;
-  ctx.font = "bold 26px sans-serif";
+  ctx.font = "bold 26px Inter";
   ctx.textAlign = "left";
   ctx.textBaseline = "bottom";
   ctx.fillText("Hourly Forecast", curveLeft, curveTop - 10);

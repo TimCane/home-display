@@ -37,7 +37,7 @@ export async function renderTodayTomorrow(
 
   // Title
   ctx.fillStyle = black;
-  ctx.font = "bold 36px sans-serif";
+  ctx.font = "bold 36px Inter";
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
   ctx.fillText(data.calendarName, 40, 30);
@@ -73,7 +73,7 @@ export async function renderTodayTomorrow(
     });
 
     ctx.fillStyle = black;
-    ctx.font = "bold 30px sans-serif";
+    ctx.font = "bold 30px Inter";
     ctx.textAlign = "left";
     ctx.fillText(`${dayLabel} — ${dateLabel}`, x, headerY);
 
@@ -87,7 +87,7 @@ export async function renderTodayTomorrow(
 
     if (events.length === 0) {
       ctx.fillStyle = black;
-      ctx.font = "italic 24px sans-serif";
+      ctx.font = "italic 24px Inter";
       ctx.fillText("No events", x, listTop);
       continue;
     }
@@ -111,13 +111,13 @@ export async function renderTodayTomorrow(
       }
 
       ctx.fillStyle = red;
-      ctx.font = "bold 22px sans-serif";
+      ctx.font = "bold 22px Inter";
       ctx.textAlign = "left";
       ctx.fillText(timeStr, x, y);
 
       // Summary (truncate if too long)
       ctx.fillStyle = black;
-      ctx.font = "22px sans-serif";
+      ctx.font = "22px Inter";
       const maxTextWidth = colWidth - 110;
       let summary = evt.summary;
       while (ctx.measureText(summary).width > maxTextWidth && summary.length > 3) {
@@ -128,7 +128,7 @@ export async function renderTodayTomorrow(
 
     if (events.length > maxEvents) {
       ctx.fillStyle = black;
-      ctx.font = "italic 20px sans-serif";
+      ctx.font = "italic 20px Inter";
       ctx.fillText(
         `+${events.length - maxEvents} more`,
         x,

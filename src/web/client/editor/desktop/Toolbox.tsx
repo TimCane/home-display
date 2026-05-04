@@ -136,7 +136,7 @@ export function Toolbox() {
             visible: true,
             z,
             text: "Text",
-            fontFamily: "sans-serif",
+            fontFamily: "Inter, sans-serif",
             fontSize: 32,
             colorIndex: 0,
           };
