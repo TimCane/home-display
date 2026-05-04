@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { FRAME_BYTES } from "../../shared/framebuffer";
@@ -33,13 +33,30 @@ export function EditorShell({ draft }: EditorShellProps) {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const getFrameBytesRef = useRef<(() => Uint8Array) | null>(null);
+  const [hasFrame, setHasFrame] = useState(false);
 
   const handleFrameReady = useCallback(
     (getter: (() => Uint8Array) | null) => {
       getFrameBytesRef.current = getter;
+      setHasFrame(getter !== null);
     },
     [],
   );
+
+  // Warn before navigating away when the editor has unsaved changes
+  const isDirty = title.trim().length > 0 || hasFrame;
+
+  useEffect(() => {
+    if (!isDirty || done) return;
+
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty, done]);
 
   const canCommit = title.trim().length > 0 && getFrameBytesRef.current !== null;
 
