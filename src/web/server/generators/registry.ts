@@ -1,4 +1,5 @@
 import type { GeneratorPlugin } from "./types.js";
+import { logger } from "../logger.js";
 
 const plugins = new Map<string, GeneratorPlugin>();
 
@@ -9,9 +10,7 @@ export function registerPlugin(plugin: GeneratorPlugin<any>): void {
     throw new Error(`Generator plugin "${plugin.name}" already registered`);
   }
   plugins.set(plugin.name, plugin);
-  console.log(
-    `[generators] Plugin registered: ${plugin.name} (renderers: ${Object.keys(plugin.renderers).join(", ")})`,
-  );
+  logger.info({ plugin: plugin.name, renderers: Object.keys(plugin.renderers) }, "Plugin registered");
 }
 
 /** Get a plugin by name, or undefined. */

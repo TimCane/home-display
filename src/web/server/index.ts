@@ -11,8 +11,25 @@ import { getEnv } from "./config/env.js";
 import { framebufferRoute } from "./http/framebuffer.js";
 import { draftCommitRoute } from "./http/draft-commit.js";
 import { sseSystemRoute } from "./http/sse-system.js";
+import { logger } from "./logger.js";
 
 const app = new Hono();
+
+// Request logging
+app.use("*", async (c, next) => {
+  const start = Date.now();
+  await next();
+  const ms = Date.now() - start;
+  logger.info(
+    {
+      method: c.req.method,
+      path: c.req.path,
+      status: c.res.status,
+      ms,
+    },
+    "request",
+  );
+});
 
 // Health check (public, no auth)
 app.get("/api/health", (c) => c.json({ ok: true }));
@@ -79,7 +96,7 @@ const port = Number(process.env.PORT) || 3100;
 
 async function main() {
   await boot();
-  console.log(`Server listening on http://localhost:${port}`);
+  logger.info({ port }, "Server listening");
   serve({ fetch: app.fetch, port });
 }
 

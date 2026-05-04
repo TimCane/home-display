@@ -14,6 +14,7 @@ import { scoreEntry } from "./score.js";
 import { weightedRandom, type ScoredCandidate } from "./select.js";
 import { pushFrame } from "../push/push-frame.js";
 import { emitSystemEvent } from "../events.js";
+import { logger } from "../logger.js";
 
 export async function tick(): Promise<void> {
   const [state] = await db
@@ -27,7 +28,7 @@ export async function tick(): Promise<void> {
       .update(entries)
       .set({ lastShownAt: new Date() })
       .where(eq(entries.id, state.lockEntryId));
-    console.log(`[scheduler] Locked to ${state.lockEntryId}, bumped last_shown_at`);
+    logger.info({ entryId: state.lockEntryId }, "Locked, bumped last_shown_at");
     return;
   }
 
@@ -68,7 +69,7 @@ export async function tick(): Promise<void> {
   });
 
   if (eligible.length === 0) {
-    console.log("[scheduler] No candidates");
+    logger.info("No candidates");
     return;
   }
 
@@ -92,7 +93,7 @@ export async function tick(): Promise<void> {
 
   const winner = weightedRandom(scored);
   if (!winner) {
-    console.log("[scheduler] Weighted random returned null");
+    logger.info("Weighted random returned null");
     return;
   }
 
@@ -118,8 +119,8 @@ export async function tick(): Promise<void> {
       payload: { entryId: winner.id },
     });
 
-    console.log(`[scheduler] Pushed entry ${winner.id}`);
+    logger.info({ entryId: winner.id }, "Pushed entry");
   } else {
-    console.log(`[scheduler] Push failed for ${winner.id}: ${result.reason}`);
+    logger.error({ entryId: winner.id, reason: result.reason }, "Push failed");
   }
 }

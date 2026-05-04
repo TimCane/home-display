@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { getSetting } from "../config/settings.js";
 import { FRAME_BYTES } from "../../shared/framebuffer.js";
 import { getState, pushFrame, startTick } from "./state.js";
+import { logger } from "../logger.js";
 
 const mockDisplay = new Hono();
 
@@ -54,7 +55,7 @@ mockDisplay.post("/fb", async (c) => {
  */
 export function initMockDisplay(): void {
   startTick();
-  console.log("[mock-display] Mock display server active");
+  logger.info("Mock display server active");
 }
 
 export { mockDisplay };

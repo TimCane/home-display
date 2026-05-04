@@ -12,6 +12,7 @@ import { db } from "../db/index.js";
 import { entries, generatorInstances, generatorRuns } from "../db/schema.js";
 import { getPlugin } from "./registry.js";
 import { FRAME_BYTES } from "../../shared/framebuffer.js";
+import { logger } from "../logger.js";
 
 /** Active cron tasks keyed by instance id. */
 const tasks = new Map<string, cron.ScheduledTask>();
@@ -24,7 +25,7 @@ async function executeRun(instanceId: string): Promise<void> {
     .where(eq(generatorInstances.id, instanceId));
 
   if (!instance) {
-    console.warn(`[generators] Instance ${instanceId} not found, skipping run`);
+    logger.warn({ instanceId }, "Instance not found, skipping run");
     return;
   }
 
@@ -72,7 +73,7 @@ async function executeRun(instanceId: string): Promise<void> {
     await logRun(instanceId, true);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error(`[generators] Run failed for instance ${instanceId}:`, message);
+    logger.error({ instanceId, error: message }, "Run failed");
     await logRun(instanceId, false, message);
   }
 }
@@ -98,14 +99,12 @@ export function registerInstance(instance: {
 
   const task = cron.schedule(instance.cronExpr, () => {
     executeRun(instance.id).catch((err) => {
-      console.error(`[generators] Unhandled error in instance ${instance.id}:`, err);
+      logger.error({ instanceId: instance.id, err }, "Unhandled error in instance");
     });
   });
 
   tasks.set(instance.id, task);
-  console.log(
-    `[generators] Instance ${instance.id} cron registered: ${instance.cronExpr}`,
-  );
+  logger.info({ instanceId: instance.id, cronExpr: instance.cronExpr }, "Instance cron registered");
 }
 
 /** Stop and remove the cron task for an instance. */
@@ -138,7 +137,7 @@ export async function bootInstances(): Promise<void> {
     registerInstance({ id: row.id, cronExpr: row.cronExpr });
   }
 
-  console.log(`[generators] ${rows.length} instance(s) loaded at boot`);
+  logger.info({ count: rows.length }, "Generator instances loaded at boot");
 }
 
 /** Stop all active crons. */

@@ -10,6 +10,7 @@ import { db } from "../db/index.js";
 import { entries } from "../db/schema.js";
 import { getSetting } from "../config/settings.js";
 import type { Condition } from "../../shared/conditions.js";
+import { logger } from "../logger.js";
 
 export async function autoDisableSweep(): Promise<void> {
   const tz = await getSetting("app_tz");
@@ -37,7 +38,7 @@ export async function autoDisableSweep(): Promise<void> {
   }
 
   if (disabledCount > 0) {
-    console.log(`[scheduler] Auto-disabled ${disabledCount} entries`);
+    logger.info({ disabledCount }, "Auto-disabled entries");
   }
 }
 

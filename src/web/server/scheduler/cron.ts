@@ -11,6 +11,7 @@ import * as cron from "node-cron";
 import { getSetting, onSettingChange } from "../config/settings.js";
 import { tick } from "./tick.js";
 import { autoDisableSweep } from "./auto-disable.js";
+import { logger } from "../logger.js";
 
 let tickTask: cron.ScheduledTask | null = null;
 let sweepTask: cron.ScheduledTask | null = null;
@@ -23,11 +24,11 @@ function registerTick(expr: string): void {
 
   tickTask = cron.schedule(expr, () => {
     tick().catch((err) => {
-      console.error("[scheduler] Tick error:", err);
+      logger.error({ err }, "Tick error");
     });
   });
 
-  console.log(`[scheduler] Tick cron registered: ${expr}`);
+  logger.info({ expr }, "Tick cron registered");
 }
 
 export async function startSchedulerCron(): Promise<void> {
@@ -45,11 +46,11 @@ export async function startSchedulerCron(): Promise<void> {
   // Register auto-disable sweep: fixed every 10 minutes
   sweepTask = cron.schedule("*/10 * * * *", () => {
     autoDisableSweep().catch((err) => {
-      console.error("[scheduler] Auto-disable sweep error:", err);
+      logger.error({ err }, "Auto-disable sweep error");
     });
   });
 
-  console.log("[scheduler] Auto-disable sweep cron registered: */10 * * * *");
+  logger.info({ expr: "*/10 * * * *" }, "Auto-disable sweep cron registered");
 }
 
 export function stopSchedulerCron(): void {

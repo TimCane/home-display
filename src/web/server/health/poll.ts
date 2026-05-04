@@ -3,6 +3,7 @@ import { db } from "../db/index.js";
 import { displayStatusHistory, systemState } from "../db/schema.js";
 import { getSetting } from "../config/settings.js";
 import { emitSystemEvent } from "../events.js";
+import { logger } from "../logger.js";
 
 // Change listeners for SSE (step 13)
 type DisplayStatusListener = (online: boolean) => void;
@@ -69,8 +70,6 @@ export async function poll(): Promise<void> {
       payload: { online: reachable },
     });
 
-    console.log(
-      `[health] Display transitioned to ${reachable ? "online" : "offline"}`
-    );
+    logger.info({ online: reachable }, "Display status transitioned");
   }
 }

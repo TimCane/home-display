@@ -1,6 +1,7 @@
 import * as cron from "node-cron";
 import { getSetting, onSettingChange } from "../config/settings.js";
 import { poll } from "./poll.js";
+import { logger } from "../logger.js";
 
 let task: cron.ScheduledTask | null = null;
 
@@ -32,11 +33,11 @@ function register(minutes: number): void {
   const expr = cronExpr(minutes);
   task = cron.schedule(expr, () => {
     poll().catch((err) => {
-      console.error("[health] Poll error:", err);
+      logger.error({ err }, "Poll error");
     });
   });
 
-  console.log(`[health] Cron registered: ${expr}`);
+  logger.info({ expr }, "Health cron registered");
 }
 
 /**

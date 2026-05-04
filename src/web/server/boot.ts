@@ -7,6 +7,7 @@ import { startHealthCron } from "./health/cron.js";
 import { startSchedulerCron } from "./scheduler/cron.js";
 import { bootInstances } from "./generators/runtime.js";
 import { registerBuiltins } from "./generators/index.js";
+import { logger } from "./logger.js";
 
 /**
  * Full startup sequence:
@@ -20,26 +21,26 @@ import { registerBuiltins } from "./generators/index.js";
 export async function boot(): Promise<void> {
   // 1. Parse and validate env vars
   const env = parseEnv();
-  console.log("[boot] Environment validated");
+  logger.info("Environment validated");
 
   // 2. Verify DB connection
   const client = await pool.connect();
   client.release();
-  console.log("[boot] Database connected");
+  logger.info("Database connected");
 
   // 3. Run migrations (idempotent)
   await migrate(db, {
     migrationsFolder: "./src/web/server/db/migrations",
   });
-  console.log("[boot] Migrations applied");
+  logger.info("Migrations applied");
 
   // 4. Seed system_state
   await seedSystemState();
-  console.log("[boot] system_state seeded");
+  logger.info("system_state seeded");
 
   // 5. Seed & validate app_settings
   await seedAndValidateSettings();
-  console.log("[boot] app_settings seeded and validated");
+  logger.info("app_settings seeded and validated");
 
   // 6. Dev-only: point display_base_url at the in-process mock display
   if (process.env.NODE_ENV !== "production") {
@@ -50,23 +51,23 @@ export async function boot(): Promise<void> {
     // Only override if still at the default value (never been customised)
     if (currentUrl === "http://localhost:7000") {
       await setSetting("display_base_url", mockUrl);
-      console.log(`[boot] display_base_url set to mock: ${mockUrl}`);
+      logger.info({ mockUrl }, "display_base_url set to mock");
     }
   }
 
   // 7. Start health-check cron
   await startHealthCron();
-  console.log("[boot] Health-check cron started");
+  logger.info("Health-check cron started");
 
   // 8. Start scheduler cron (tick + auto-disable sweep)
   await startSchedulerCron();
-  console.log("[boot] Scheduler cron started");
+  logger.info("Scheduler cron started");
 
   // 9. Register built-in generator plugins
   registerBuiltins();
-  console.log("[boot] Built-in generator plugins registered");
+  logger.info("Built-in generator plugins registered");
 
   // 10. Load generator instances and register their crons
   await bootInstances();
-  console.log("[boot] Generator instance crons started");
+  logger.info("Generator instance crons started");
 }
