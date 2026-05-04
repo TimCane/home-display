@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { trpc } from "../trpc";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { FramebufferImage } from "../components/FramebufferImage";
 import { ConditionsEditor } from "../components/ConditionsEditor";
 import {
@@ -60,6 +61,7 @@ export function EntriesPage() {
   const entries = trpc.entry.list.useQuery({ skip: page * PAGE_SIZE, take: PAGE_SIZE });
   const utils = trpc.useUtils();
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const updateMut = trpc.entry.update.useMutation({
     onSuccess: () => {
@@ -114,10 +116,7 @@ export function EntriesPage() {
                   onSave={(patch) =>
                     updateMut.mutate({ id: entry.id, ...patch })
                   }
-                  onDelete={() => {
-                    if (confirm("Delete this entry?"))
-                      deleteMut.mutate({ id: entry.id });
-                  }}
+                  onDelete={() => setDeletingId(entry.id)}
                   onDisplayNow={() => displayNowMut.mutate({ id: entry.id })}
                   onLock={() => lockMut.mutate({ entryId: entry.id })}
                   isSaving={updateMut.isPending}
@@ -164,6 +163,18 @@ export function EntriesPage() {
           isSaving={updateMut.isPending}
         />
       )}
+
+      <ConfirmDialog
+        open={deletingId !== null}
+        title="Delete entry"
+        message="Are you sure you want to delete this entry? This action cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={() => {
+          if (deletingId) deleteMut.mutate({ id: deletingId });
+          setDeletingId(null);
+        }}
+        onCancel={() => setDeletingId(null)}
+      />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import {
   CardDescription,
 } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import {
   Play,
   Pencil,
@@ -27,6 +28,7 @@ export function GeneratorsPage() {
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const deleteMut = trpc.generator.deleteInstance.useMutation({
     onSuccess: () => {
@@ -160,14 +162,7 @@ export function GeneratorsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          if (
-                            confirm(
-                              "Delete this instance and its entry?",
-                            )
-                          )
-                            deleteMut.mutate({ id: inst.id });
-                        }}
+                        onClick={() => setDeletingId(inst.id)}
                       >
                         <Trash2 className="mr-1 h-3 w-3" />
                         Delete
@@ -197,6 +192,18 @@ export function GeneratorsPage() {
               onClose={() => setEditingId(null)}
             />
           )}
+
+          <ConfirmDialog
+            open={deletingId !== null}
+            title="Delete instance"
+            message="Are you sure you want to delete this instance and its entry? This action cannot be undone."
+            confirmLabel="Delete"
+            onConfirm={() => {
+              if (deletingId) deleteMut.mutate({ id: deletingId });
+              setDeletingId(null);
+            }}
+            onCancel={() => setDeletingId(null)}
+          />
         </>
       )}
     </div>

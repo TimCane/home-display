@@ -2,6 +2,7 @@ import { useState } from "react";
 import { trpc } from "../trpc";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Copy, QrCode as QrCodeIcon, Ban } from "lucide-react";
 import { QrCode } from "../components/QrCode";
 
@@ -48,6 +49,7 @@ export function DraftsPage() {
   });
   const [qrDraftId, setQrDraftId] = useState<string | null>(null);
   const totalPages = drafts.data ? Math.ceil(drafts.data.total / PAGE_SIZE) : 0;
+  const [revokingId, setRevokingId] = useState<string | null>(null);
 
   const editorUrl = (id: string) => `${window.location.origin}/editor/${id}`;
 
@@ -141,10 +143,7 @@ export function DraftsPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => {
-                                if (confirm("Revoke this draft?"))
-                                  revokeMut.mutate({ id: draft.id });
-                              }}
+                              onClick={() => setRevokingId(draft.id)}
                               title="Revoke draft"
                             >
                               <Ban className="h-4 w-4" />
@@ -207,6 +206,18 @@ export function DraftsPage() {
           </CardContent>
         </Card>
       )}
+
+      <ConfirmDialog
+        open={revokingId !== null}
+        title="Revoke draft"
+        message="Are you sure you want to revoke this draft? The editor link will stop working."
+        confirmLabel="Revoke"
+        onConfirm={() => {
+          if (revokingId) revokeMut.mutate({ id: revokingId });
+          setRevokingId(null);
+        }}
+        onCancel={() => setRevokingId(null)}
+      />
     </div>
   );
 }
