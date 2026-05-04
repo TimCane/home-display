@@ -85,79 +85,141 @@ export function DraftsPage() {
       )}
 
       {drafts.data && drafts.data.items.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-muted-foreground">
-                <th className="pb-2 pr-4 font-medium">Status</th>
-                <th className="pb-2 pr-4 font-medium">Type</th>
-                <th className="pb-2 pr-4 font-medium">Submitter</th>
-                <th className="pb-2 pr-4 font-medium">Created</th>
-                <th className="pb-2 pr-4 font-medium">Expires</th>
-                <th className="pb-2 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {drafts.data.items.map((draft) => {
-                const status = draftStatus(draft);
-                const isActive = status === "active";
-                return (
-                  <tr key={draft.id} className="border-b">
-                    <td className="py-2 pr-4">{statusBadge(status)}</td>
-                    <td className="py-2 pr-4">
-                      {draft.guestMode ? "Guest" : "Admin"}
-                    </td>
-                    <td className="py-2 pr-4">
-                      {draft.submitterName ?? "—"}
-                    </td>
-                    <td className="py-2 pr-4 text-xs">
-                      {formatDate(draft.createdAt)}
-                    </td>
-                    <td className="py-2 pr-4 text-xs">
-                      {formatDate(draft.expiresAt)}
-                    </td>
-                    <td className="py-2">
-                      <div className="flex items-center gap-1">
-                        {isActive && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => copyUrl(draft.id)}
-                              title="Copy editor URL"
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() =>
-                                setQrDraftId(
-                                  qrDraftId === draft.id ? null : draft.id,
-                                )
-                              }
-                              title="Show QR code"
-                            >
-                              <QrCodeIcon className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setRevokingId(draft.id)}
-                              title="Revoke draft"
-                            >
-                              <Ban className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
+        <>
+          {/* Mobile card layout */}
+          <div className="space-y-4 md:hidden">
+            {drafts.data.items.map((draft) => {
+              const status = draftStatus(draft);
+              const isActive = status === "active";
+              return (
+                <Card key={draft.id}>
+                  <CardContent className="pt-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {statusBadge(status)}
+                        <span className="text-sm">
+                          {draft.guestMode ? "Guest" : "Admin"}
+                        </span>
                       </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      {isActive && (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => copyUrl(draft.id)}
+                            title="Copy editor URL"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              setQrDraftId(
+                                qrDraftId === draft.id ? null : draft.id,
+                              )
+                            }
+                            title="Show QR code"
+                          >
+                            <QrCodeIcon className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setRevokingId(draft.id)}
+                            title="Revoke draft"
+                          >
+                            <Ban className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground space-y-1">
+                      <p>Submitter: {draft.submitterName ?? "—"}</p>
+                      <p>Created: {formatDate(draft.createdAt)}</p>
+                      <p>Expires: {formatDate(draft.expiresAt)}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* Desktop table layout */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-muted-foreground">
+                  <th className="pb-2 pr-4 font-medium">Status</th>
+                  <th className="pb-2 pr-4 font-medium">Type</th>
+                  <th className="pb-2 pr-4 font-medium">Submitter</th>
+                  <th className="pb-2 pr-4 font-medium">Created</th>
+                  <th className="pb-2 pr-4 font-medium">Expires</th>
+                  <th className="pb-2 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {drafts.data.items.map((draft) => {
+                  const status = draftStatus(draft);
+                  const isActive = status === "active";
+                  return (
+                    <tr key={draft.id} className="border-b">
+                      <td className="py-2 pr-4">{statusBadge(status)}</td>
+                      <td className="py-2 pr-4">
+                        {draft.guestMode ? "Guest" : "Admin"}
+                      </td>
+                      <td className="py-2 pr-4">
+                        {draft.submitterName ?? "—"}
+                      </td>
+                      <td className="py-2 pr-4 text-xs">
+                        {formatDate(draft.createdAt)}
+                      </td>
+                      <td className="py-2 pr-4 text-xs">
+                        {formatDate(draft.expiresAt)}
+                      </td>
+                      <td className="py-2">
+                        <div className="flex items-center gap-1">
+                          {isActive && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => copyUrl(draft.id)}
+                                title="Copy editor URL"
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() =>
+                                  setQrDraftId(
+                                    qrDraftId === draft.id ? null : draft.id,
+                                  )
+                                }
+                                title="Show QR code"
+                              >
+                                <QrCodeIcon className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setRevokingId(draft.id)}
+                                title="Revoke draft"
+                              >
+                                <Ban className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* Pagination */}

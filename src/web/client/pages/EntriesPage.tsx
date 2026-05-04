@@ -91,40 +91,57 @@ export function EntriesPage() {
         <p className="text-muted-foreground">No entries yet.</p>
       )}
       {entries.data && entries.data.items.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-muted-foreground">
-                <th className="pb-2 pr-4 font-medium">Preview</th>
-                <th className="pb-2 pr-4 font-medium">Title</th>
-                <th className="pb-2 pr-4 font-medium">Source</th>
-                <th className="pb-2 pr-4 font-medium">Enabled</th>
-                <th className="pb-2 pr-4 font-medium">Weight</th>
-                <th className="pb-2 pr-4 font-medium">Conditions</th>
-                <th className="pb-2 pr-4 font-medium">Shown</th>
-                <th className="pb-2 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.data.items.map((entry) => (
-                <EntryTableRow
-                  key={entry.id}
-                  entry={entry as EntryRow}
-                  isEditing={editingId === entry.id}
-                  onEdit={() => setEditingId(entry.id)}
-                  onCancelEdit={() => setEditingId(null)}
-                  onSave={(patch) =>
-                    updateMut.mutate({ id: entry.id, ...patch })
-                  }
-                  onDelete={() => setDeletingId(entry.id)}
-                  onDisplayNow={() => displayNowMut.mutate({ id: entry.id })}
-                  onLock={() => lockMut.mutate({ entryId: entry.id })}
-                  isSaving={updateMut.isPending}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          {/* Mobile card layout */}
+          <div className="space-y-4 md:hidden">
+            {entries.data.items.map((entry) => (
+              <EntryCard
+                key={entry.id}
+                entry={entry as EntryRow}
+                onEdit={() => setEditingId(entry.id)}
+                onDelete={() => setDeletingId(entry.id)}
+                onDisplayNow={() => displayNowMut.mutate({ id: entry.id })}
+                onLock={() => lockMut.mutate({ entryId: entry.id })}
+              />
+            ))}
+          </div>
+
+          {/* Desktop table layout */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-muted-foreground">
+                  <th className="pb-2 pr-4 font-medium">Preview</th>
+                  <th className="pb-2 pr-4 font-medium">Title</th>
+                  <th className="pb-2 pr-4 font-medium">Source</th>
+                  <th className="pb-2 pr-4 font-medium">Enabled</th>
+                  <th className="pb-2 pr-4 font-medium">Weight</th>
+                  <th className="pb-2 pr-4 font-medium">Conditions</th>
+                  <th className="pb-2 pr-4 font-medium">Shown</th>
+                  <th className="pb-2 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entries.data.items.map((entry) => (
+                  <EntryTableRow
+                    key={entry.id}
+                    entry={entry as EntryRow}
+                    isEditing={editingId === entry.id}
+                    onEdit={() => setEditingId(entry.id)}
+                    onCancelEdit={() => setEditingId(null)}
+                    onSave={(patch) =>
+                      updateMut.mutate({ id: entry.id, ...patch })
+                    }
+                    onDelete={() => setDeletingId(entry.id)}
+                    onDisplayNow={() => displayNowMut.mutate({ id: entry.id })}
+                    onLock={() => lockMut.mutate({ entryId: entry.id })}
+                    isSaving={updateMut.isPending}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* Pagination */}
@@ -333,6 +350,88 @@ function EntryTableRow({
         </div>
       </td>
     </tr>
+  );
+}
+
+function EntryCard({
+  entry,
+  onEdit,
+  onDelete,
+  onDisplayNow,
+  onLock,
+}: {
+  entry: EntryRow;
+  onEdit: () => void;
+  onDelete: () => void;
+  onDisplayNow: () => void;
+  onLock: () => void;
+}) {
+  const isGenerator = entry.source === "generator";
+
+  return (
+    <Card>
+      <CardContent className="pt-4 space-y-3">
+        <div className="flex items-start gap-3">
+          <FramebufferImage
+            entryId={entry.id}
+            updatedAt={entry.updatedAt}
+            className="w-[100px] rounded shrink-0"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="font-medium truncate">{entry.title}</p>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+              {sourceBadge(entry.source)}
+              <span
+                className={`inline-block h-2 w-2 rounded-full ${entry.enabled ? "bg-green-500" : "bg-gray-300"}`}
+              />
+              <span className="text-muted-foreground">
+                wt {entry.baseWeight}
+              </span>
+              <span className="text-muted-foreground">
+                shown {entry.showCount}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground truncate">
+              {conditionsSummary(entry.conditions)}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 border-t pt-2">
+          <Button variant="ghost" size="icon" onClick={onEdit} title="Edit">
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onDisplayNow}
+            title="Display now"
+          >
+            <Monitor className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onLock}
+            title="Lock to this"
+          >
+            <Lock className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onDelete}
+            disabled={isGenerator}
+            title={
+              isGenerator
+                ? "Delete the generator instance instead"
+                : "Delete entry"
+            }
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
