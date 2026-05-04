@@ -71,6 +71,7 @@ async function doPush(
   try {
     const statusRes = await fetch(`${baseUrl}/status`, {
       headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(10_000),
     });
     if (statusRes.ok) {
       const status = (await statusRes.json()) as { last_refresh_uptime_s: number };
@@ -96,6 +97,7 @@ async function doPush(
           "Content-Length": String(framebuffer.length),
         },
         body: new Uint8Array(framebuffer),
+        signal: AbortSignal.timeout(10_000),
       });
 
       if (res.ok) {

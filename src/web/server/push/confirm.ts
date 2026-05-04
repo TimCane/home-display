@@ -36,6 +36,7 @@ export async function pollConfirmation(
     try {
       const res = await fetch(`${baseUrl}/status`, {
         headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(10_000),
       });
       if (!res.ok) continue;
 
