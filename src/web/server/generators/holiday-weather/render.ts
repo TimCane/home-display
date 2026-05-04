@@ -1,5 +1,5 @@
 /**
- * Holiday weather renderer — card grid of upcoming trips.
+ * Holiday weather renderer — vibrant card grid of upcoming trips.
  */
 
 import type { SKRSContext2D } from "@napi-rs/canvas";
@@ -36,13 +36,25 @@ export async function renderHoliday(
   ctx.fillStyle = WHITE;
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-  // ── Header bar (0-65) ──
-  drawHeaderBar(ctx, 0, 65, BLACK);
+  // ── Header bar (0-80) with decorative accent ──
+  drawHeaderBar(ctx, 0, 80, BLACK);
+  // Yellow accent stripe at bottom of header
+  ctx.fillStyle = YELLOW;
+  ctx.fillRect(0, 74, WIDTH, 6);
+
   ctx.fillStyle = WHITE;
-  ctx.font = "bold 30px Inter";
+  ctx.font = "bold 34px Inter";
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
-  ctx.fillText("Upcoming Trips", 40, 33);
+  ctx.fillText("✈  Upcoming Trips", 40, 38);
+
+  // Decorative dots in header
+  for (let i = 0; i < 5; i++) {
+    ctx.beginPath();
+    ctx.arc(WIDTH - 50 - i * 28, 38, 5, 0, Math.PI * 2);
+    ctx.fillStyle = i % 2 === 0 ? YELLOW : RED;
+    ctx.fill();
+  }
 
   const trips = data.trips;
 
@@ -56,19 +68,18 @@ export async function renderHoliday(
   }
 
   // ── Card layout ──
-  // 1 trip: 1 large centred card
-  // 2 trips: 2 cards in a row
-  // 3 trips: 3 cards in a row
-  // 4 trips: 2x2 grid
-  const gap = 24;
-  const margin = 40;
-  const headerH = 65;
+  const gap = 28;
+  const margin = 36;
+  const headerH = 80;
   const availW = WIDTH - margin * 2;
-  const availH = HEIGHT - headerH - margin;
+  const availH = HEIGHT - headerH - margin - 10;
 
   let cols: number;
   let rows: number;
-  if (trips.length <= 3) {
+  if (trips.length === 1) {
+    cols = 1;
+    rows = 1;
+  } else if (trips.length <= 3) {
     cols = trips.length;
     rows = 1;
   } else {
@@ -78,14 +89,14 @@ export async function renderHoliday(
 
   const cardW = (availW - (cols - 1) * gap) / cols;
   const cardH = (availH - (rows - 1) * gap) / rows;
-  const radius = 14;
+  const radius = 16;
 
   for (let i = 0; i < trips.length; i++) {
     const trip = trips[i];
     const col = i % cols;
     const row = Math.floor(i / cols);
     const x = margin + col * (cardW + gap);
-    const y = headerH + margin / 2 + row * (cardH + gap);
+    const y = headerH + 16 + row * (cardH + gap);
     const isFirst = i === 0;
 
     drawTripCard(ctx, trip, x, y, cardW, cardH, radius, isFirst, tz);
@@ -105,94 +116,133 @@ function drawTripCard(
   isFirst: boolean,
   tz: string,
 ): void {
-  const cardHeaderH = 60;
+  const cardHeaderH = 70;
 
-  // Card background
+  // ── Card shell: thick border for first card ──
   roundedRectPath(ctx, x, y, w, h, radius);
   ctx.fillStyle = WHITE;
   ctx.fill();
   ctx.strokeStyle = BLACK;
-  ctx.lineWidth = 2;
+  ctx.lineWidth = isFirst ? 4 : 2;
   ctx.stroke();
 
-  // Card header — yellow for soonest, black for others
+  // ── Card header with colour fill ──
   ctx.save();
   roundedRectPath(ctx, x, y, w, cardHeaderH + radius, radius);
   ctx.clip();
   ctx.fillStyle = isFirst ? YELLOW : BLACK;
   ctx.fillRect(x, y, w, cardHeaderH);
+
+  // Diagonal decorative stripes in header
+  ctx.globalAlpha = 0.08;
+  ctx.fillStyle = isFirst ? BLACK : WHITE;
+  for (let s = -2; s < 8; s++) {
+    ctx.beginPath();
+    ctx.moveTo(x + s * 40, y);
+    ctx.lineTo(x + s * 40 + 20, y);
+    ctx.lineTo(x + s * 40 + 20 + cardHeaderH, y + cardHeaderH);
+    ctx.lineTo(x + s * 40 + cardHeaderH, y + cardHeaderH);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1.0;
   ctx.restore();
 
-  // Header separator
+  // Header border bottom
   ctx.strokeStyle = BLACK;
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(x, y + cardHeaderH);
   ctx.lineTo(x + w, y + cardHeaderH);
   ctx.stroke();
 
-  // Trip name in header
+  // ── Trip name (big, bold) ──
   const headerTextColor = isFirst ? BLACK : WHITE;
   ctx.fillStyle = headerTextColor;
-  ctx.font = "bold 26px Inter";
+  ctx.font = "bold 28px Inter";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  const tripName = truncateText(ctx, trip.name, w - 24);
+  const tripName = truncateText(ctx, trip.name.toUpperCase(), w - 30);
   ctx.fillText(tripName, x + w / 2, y + cardHeaderH / 2);
 
   // ── Card body ──
-  const bodyTop = y + cardHeaderH + 12;
-  const bodyH = h - cardHeaderH - 12;
+  const bodyTop = y + cardHeaderH + 14;
+  const bodyBottom = y + h - 14;
+  const bodyH = bodyBottom - bodyTop;
   const cx = x + w / 2;
 
   if (trip.weather) {
-    // Weather icon
-    const { icon } = weatherLabel(trip.weather.weatherCode);
-    const iconSize = Math.min(w * 0.35, bodyH * 0.35, 110);
-    drawWeatherIcon(ctx, icon, cx - iconSize / 2, bodyTop + 4, iconSize, BLACK);
+    // Weather icon — large and prominent
+    const { icon, label } = weatherLabel(trip.weather.weatherCode);
+    const iconSize = Math.min(w * 0.38, bodyH * 0.32, 120);
+    drawWeatherIcon(ctx, icon, cx - iconSize / 2, bodyTop + 6, iconSize, BLACK);
 
-    // Temperature
-    const tempY = bodyTop + iconSize + 14;
-    ctx.fillStyle = RED;
-    ctx.font = "bold 40px Inter";
+    // Condition label
+    ctx.fillStyle = BLACK;
+    ctx.font = "18px Inter";
     ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText(label, cx, bodyTop + iconSize + 10);
+
+    // Temperature — big red high, smaller low
+    const tempY = bodyTop + iconSize + 36;
+    ctx.fillStyle = RED;
+    ctx.font = "bold 48px Inter";
     ctx.textBaseline = "top";
     ctx.fillText(`${trip.weather.high}°`, cx, tempY);
 
     ctx.fillStyle = BLACK;
-    ctx.font = "26px Inter";
-    ctx.fillText(`${trip.weather.low}°`, cx, tempY + 44);
-  } else {
-    // No forecast — show a large countdown number
-    ctx.fillStyle = BLACK;
-    ctx.font = "bold 80px Inter";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "top";
-    const countdownTop = bodyTop + bodyH * 0.05;
-    ctx.fillText(`${trip.daysUntil}`, cx, countdownTop);
+    ctx.font = "28px Inter";
+    ctx.fillText(`/ ${trip.weather.low}°`, cx, tempY + 52);
 
-    ctx.font = "22px Inter";
-    ctx.fillText("days to go", cx, countdownTop + 85);
+    // Countdown pill
+    drawCountdownPill(ctx, cx, bodyBottom - 88, trip.daysUntil);
+  } else {
+    // No forecast — dramatic countdown display
+    const countdownCenterY = bodyTop + bodyH * 0.3;
+
+    // Large number in a coloured circle
+    const circleR = Math.min(w * 0.22, bodyH * 0.22, 70);
+    ctx.beginPath();
+    ctx.arc(cx, countdownCenterY, circleR, 0, Math.PI * 2);
+    ctx.fillStyle = isFirst ? YELLOW : RED;
+    ctx.fill();
+    ctx.strokeStyle = BLACK;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    ctx.fillStyle = isFirst ? BLACK : WHITE;
+    ctx.font = `bold ${circleR * 0.9}px Inter`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(`${trip.daysUntil}`, cx, countdownCenterY);
+
+    // "days to go" label
+    ctx.fillStyle = BLACK;
+    ctx.font = "bold 22px Inter";
+    ctx.textBaseline = "top";
+    ctx.fillText("days to go", cx, countdownCenterY + circleR + 12);
+
+    // Progress bar showing how close the trip is (90 days = full track)
+    const progressY = countdownCenterY + circleR + 50;
+    drawProgressBar(ctx, x + 20, progressY, w - 40, trip.daysUntil);
   }
 
-  // ── Bottom section: location, dates, countdown pill ──
-  const bottomY = y + h - 100;
+  // ── Bottom section: location + dates ──
+  const footerH = 65;
+  const footerY = y + h - footerH;
 
-  // Separator
-  ctx.strokeStyle = BLACK;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(x + 14, bottomY);
-  ctx.lineTo(x + w - 14, bottomY);
-  ctx.stroke();
+  // Footer separator with yellow accent
+  ctx.fillStyle = YELLOW;
+  ctx.fillRect(x + 14, footerY, w - 28, 3);
 
   // Location name
   ctx.fillStyle = BLACK;
-  ctx.font = "20px Inter";
+  ctx.font = "bold 20px Inter";
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
-  const locName = truncateText(ctx, trip.locationName, w - 28);
-  ctx.fillText(locName, cx, bottomY + 8);
+  const locName = truncateText(ctx, trip.locationName, w - 30);
+  ctx.fillText(locName, cx, footerY + 10);
 
   // Date range
   const startD = new Date(trip.startDate + "T12:00:00");
@@ -204,34 +254,83 @@ function drawTripCard(
   };
   const dateRange = `${startD.toLocaleDateString("en-GB", fmtOpts)} – ${endD.toLocaleDateString("en-GB", fmtOpts)}`;
   ctx.font = "18px Inter";
-  ctx.fillText(dateRange, cx, bottomY + 33);
+  ctx.fillText(dateRange, cx, footerY + 36);
+}
 
-  // Countdown pill (if forecast is available — otherwise it's shown large above)
-  if (trip.weather && trip.daysUntil > 0) {
-    const pillText = `in ${trip.daysUntil} day${trip.daysUntil !== 1 ? "s" : ""}`;
-    ctx.font = "bold 16px Inter";
-    const pillW = ctx.measureText(pillText).width + 20;
-    const pillX = cx - pillW / 2;
-    const pillY = bottomY + 58;
-    roundedRectPath(ctx, pillX, pillY, pillW, 24, 12);
-    ctx.fillStyle = RED;
-    ctx.fill();
-    ctx.fillStyle = WHITE;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(pillText, cx, pillY + 12);
-  } else if (trip.daysUntil === 0) {
-    const pillText = "TODAY!";
-    ctx.font = "bold 16px Inter";
-    const pillW = ctx.measureText(pillText).width + 20;
-    const pillX = cx - pillW / 2;
-    const pillY = bottomY + 58;
-    roundedRectPath(ctx, pillX, pillY, pillW, 24, 12);
+function drawCountdownPill(
+  ctx: SKRSContext2D,
+  cx: number,
+  y: number,
+  daysUntil: number,
+): void {
+  let pillText: string;
+  let bgColor: string;
+  let textColor: string;
+
+  if (daysUntil === 0) {
+    pillText = "✈  TODAY!";
+    bgColor = YELLOW;
+    textColor = BLACK;
+  } else if (daysUntil === 1) {
+    pillText = "✈  TOMORROW!";
+    bgColor = YELLOW;
+    textColor = BLACK;
+  } else if (daysUntil <= 7) {
+    pillText = `${daysUntil} days — this week!`;
+    bgColor = RED;
+    textColor = WHITE;
+  } else {
+    pillText = `in ${daysUntil} days`;
+    bgColor = RED;
+    textColor = WHITE;
+  }
+
+  ctx.font = "bold 18px Inter";
+  const pillW = Math.max(ctx.measureText(pillText).width + 28, 100);
+  const pillH = 30;
+  const pillX = cx - pillW / 2;
+
+  roundedRectPath(ctx, pillX, y, pillW, pillH, pillH / 2);
+  ctx.fillStyle = bgColor;
+  ctx.fill();
+
+  ctx.fillStyle = textColor;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(pillText, cx, y + pillH / 2);
+}
+
+function drawProgressBar(
+  ctx: SKRSContext2D,
+  x: number,
+  y: number,
+  w: number,
+  daysUntil: number,
+): void {
+  const barH = 10;
+  const maxDays = 90;
+  const progress = Math.max(0, Math.min(1, 1 - daysUntil / maxDays));
+
+  // Track
+  roundedRectPath(ctx, x, y, w, barH, barH / 2);
+  ctx.fillStyle = BLACK;
+  ctx.fill();
+
+  // Filled portion
+  if (progress > 0.02) {
+    const fillW = Math.max(barH, progress * w);
+    roundedRectPath(ctx, x, y, fillW, barH, barH / 2);
     ctx.fillStyle = YELLOW;
     ctx.fill();
-    ctx.fillStyle = BLACK;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(pillText, cx, pillY + 12);
   }
+
+  // Marker dot at the progress point
+  const dotX = x + progress * w;
+  ctx.beginPath();
+  ctx.arc(dotX, y + barH / 2, 7, 0, Math.PI * 2);
+  ctx.fillStyle = RED;
+  ctx.fill();
+  ctx.strokeStyle = BLACK;
+  ctx.lineWidth = 2;
+  ctx.stroke();
 }
