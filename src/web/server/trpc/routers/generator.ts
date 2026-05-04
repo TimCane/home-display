@@ -1,6 +1,6 @@
 import { z } from "zod";
 import * as cron from "node-cron";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { router, adminProcedure } from "../trpc.js";
 import { entries, generatorInstances, generatorRuns } from "../../db/schema.js";
@@ -25,25 +25,45 @@ export const generatorRouter = router({
 
   /** List all generator instances with their last run summary. */
   listInstances: adminProcedure.query(async ({ ctx }) => {
-    const instances = await ctx.db
-      .select()
-      .from(generatorInstances);
-
-    // Fetch last run per instance
-    const result = await Promise.all(
-      instances.map(async (inst) => {
-        const [lastRun] = await ctx.db
-          .select()
-          .from(generatorRuns)
-          .where(eq(generatorRuns.instanceId, inst.id))
-          .orderBy(desc(generatorRuns.ranAt))
-          .limit(1);
-
-        return { ...inst, lastRun: lastRun ?? null };
-      }),
+    // Use a lateral subquery to fetch each instance's most recent run in a
+    // single round trip instead of 1 + N queries.
+    const lastRun = ctx.db.$with("last_run").as(
+      ctx.db
+        .selectDistinctOn([generatorRuns.instanceId], {
+          instanceId: generatorRuns.instanceId,
+          id: generatorRuns.id,
+          ranAt: generatorRuns.ranAt,
+          succeeded: generatorRuns.succeeded,
+          error: generatorRuns.error,
+        })
+        .from(generatorRuns)
+        .orderBy(generatorRuns.instanceId, desc(generatorRuns.ranAt)),
     );
 
-    return result;
+    const rows = await ctx.db
+      .with(lastRun)
+      .select({
+        instance: generatorInstances,
+        lastRunId: lastRun.id,
+        lastRunRanAt: lastRun.ranAt,
+        lastRunSucceeded: lastRun.succeeded,
+        lastRunError: lastRun.error,
+      })
+      .from(generatorInstances)
+      .leftJoin(lastRun, eq(generatorInstances.id, lastRun.instanceId));
+
+    return rows.map((row) => ({
+      ...row.instance,
+      lastRun: row.lastRunId
+        ? {
+            id: row.lastRunId,
+            instanceId: row.instance.id,
+            ranAt: row.lastRunRanAt!,
+            succeeded: row.lastRunSucceeded!,
+            error: row.lastRunError ?? null,
+          }
+        : null,
+    }));
   }),
 
   /** Create a new generator instance + its placeholder entry. */
