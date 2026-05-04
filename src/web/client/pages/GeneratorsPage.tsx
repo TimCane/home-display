@@ -203,6 +203,177 @@ export function GeneratorsPage() {
   );
 }
 
+function defaultConfigForPlugin(pluginName: string): Record<string, unknown> {
+  switch (pluginName) {
+    case "weather":
+      return { location: { lat: 0, lon: 0, name: "" }, units: "metric" };
+    case "calendar":
+      return { ics_url: "", calendar_name: "" };
+    default:
+      return {};
+  }
+}
+
+function WeatherConfigForm({
+  config,
+  onChange,
+}: {
+  config: Record<string, unknown>;
+  onChange: (config: Record<string, unknown>) => void;
+}) {
+  const location = (config.location ?? { lat: 0, lon: 0, name: "" }) as {
+    lat: number;
+    lon: number;
+    name: string;
+  };
+  const units = (config.units ?? "metric") as string;
+
+  const inputClass =
+    "mt-1 w-full rounded border bg-background px-3 py-2 text-sm";
+
+  return (
+    <>
+      <div>
+        <label className="text-sm font-medium">Location Name</label>
+        <input
+          type="text"
+          value={location.name}
+          onChange={(e) =>
+            onChange({
+              ...config,
+              location: { ...location, name: e.target.value },
+            })
+          }
+          className={inputClass}
+          placeholder="London"
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-sm font-medium">Latitude</label>
+          <input
+            type="number"
+            step="any"
+            min={-90}
+            max={90}
+            value={location.lat}
+            onChange={(e) =>
+              onChange({
+                ...config,
+                location: { ...location, lat: parseFloat(e.target.value) || 0 },
+              })
+            }
+            className={inputClass}
+            placeholder="51.5074"
+          />
+        </div>
+        <div>
+          <label className="text-sm font-medium">Longitude</label>
+          <input
+            type="number"
+            step="any"
+            min={-180}
+            max={180}
+            value={location.lon}
+            onChange={(e) =>
+              onChange({
+                ...config,
+                location: { ...location, lon: parseFloat(e.target.value) || 0 },
+              })
+            }
+            className={inputClass}
+            placeholder="-0.1278"
+          />
+        </div>
+      </div>
+      <div>
+        <label className="text-sm font-medium">Units</label>
+        <select
+          value={units}
+          onChange={(e) => onChange({ ...config, units: e.target.value })}
+          className={inputClass}
+        >
+          <option value="metric">Metric</option>
+          <option value="imperial">Imperial</option>
+        </select>
+      </div>
+    </>
+  );
+}
+
+function CalendarConfigForm({
+  config,
+  onChange,
+}: {
+  config: Record<string, unknown>;
+  onChange: (config: Record<string, unknown>) => void;
+}) {
+  const inputClass =
+    "mt-1 w-full rounded border bg-background px-3 py-2 text-sm";
+
+  return (
+    <>
+      <div>
+        <label className="text-sm font-medium">ICS URL</label>
+        <input
+          type="url"
+          value={(config.ics_url as string) ?? ""}
+          onChange={(e) => onChange({ ...config, ics_url: e.target.value })}
+          className={inputClass}
+          placeholder="https://example.com/calendar.ics"
+        />
+      </div>
+      <div>
+        <label className="text-sm font-medium">Calendar Name</label>
+        <input
+          type="text"
+          value={(config.calendar_name as string) ?? ""}
+          onChange={(e) =>
+            onChange({ ...config, calendar_name: e.target.value })
+          }
+          className={inputClass}
+          placeholder="Family Calendar"
+        />
+      </div>
+    </>
+  );
+}
+
+function PluginConfigFields({
+  pluginName,
+  config,
+  onChange,
+}: {
+  pluginName: string;
+  config: Record<string, unknown>;
+  onChange: (config: Record<string, unknown>) => void;
+}) {
+  switch (pluginName) {
+    case "weather":
+      return <WeatherConfigForm config={config} onChange={onChange} />;
+    case "calendar":
+      return <CalendarConfigForm config={config} onChange={onChange} />;
+    default:
+      return (
+        <div>
+          <label className="text-sm font-medium">Config (JSON)</label>
+          <textarea
+            value={JSON.stringify(config, null, 2)}
+            onChange={(e) => {
+              try {
+                onChange(JSON.parse(e.target.value));
+              } catch {
+                /* ignore parse errors while typing */
+              }
+            }}
+            rows={4}
+            className="mt-1 w-full rounded border bg-background px-3 py-2 text-sm font-mono"
+          />
+        </div>
+      );
+  }
+}
+
 function CreateInstanceModal({
   pluginName,
   renderers,
@@ -216,7 +387,9 @@ function CreateInstanceModal({
   const [name, setName] = useState("");
   const [renderer, setRenderer] = useState(renderers[0] ?? "");
   const [cron, setCron] = useState("*/30 * * * *");
-  const [configJson, setConfigJson] = useState("{}");
+  const [config, setConfig] = useState<Record<string, unknown>>(
+    defaultConfigForPlugin(pluginName),
+  );
 
   const createMut = trpc.generator.createInstance.useMutation({
     onSuccess: () => {
@@ -269,15 +442,11 @@ function CreateInstanceModal({
               className="mt-1 w-full rounded border bg-background px-3 py-2 text-sm font-mono"
             />
           </div>
-          <div>
-            <label className="text-sm font-medium">Config (JSON)</label>
-            <textarea
-              value={configJson}
-              onChange={(e) => setConfigJson(e.target.value)}
-              rows={4}
-              className="mt-1 w-full rounded border bg-background px-3 py-2 text-sm font-mono"
-            />
-          </div>
+          <PluginConfigFields
+            pluginName={pluginName}
+            config={config}
+            onChange={setConfig}
+          />
           {createMut.error && (
             <p className="text-sm text-red-600">
               {createMut.error.message}
@@ -288,21 +457,15 @@ function CreateInstanceModal({
               Cancel
             </Button>
             <Button
-              onClick={() => {
-                let config: Record<string, unknown>;
-                try {
-                  config = JSON.parse(configJson);
-                } catch {
-                  return;
-                }
+              onClick={() =>
                 createMut.mutate({
                   plugin: pluginName,
                   renderer,
                   instanceName: name,
                   config,
                   cronExpr: cron,
-                });
-              }}
+                })
+              }
               disabled={!name || !renderer || createMut.isPending}
             >
               <Check className="mr-2 h-4 w-4" />
@@ -321,6 +484,7 @@ function EditInstanceModal({
 }: {
   instance: {
     id: string;
+    pluginName: string;
     instanceName: string;
     renderer: string;
     cronExpr: string;
@@ -331,8 +495,8 @@ function EditInstanceModal({
   const utils = trpc.useUtils();
   const [name, setName] = useState(instance.instanceName);
   const [cron, setCron] = useState(instance.cronExpr);
-  const [configJson, setConfigJson] = useState(
-    JSON.stringify(instance.config, null, 2),
+  const [config, setConfig] = useState<Record<string, unknown>>(
+    (instance.config as Record<string, unknown>) ?? {},
   );
 
   const updateMut = trpc.generator.updateInstance.useMutation({
@@ -370,15 +534,11 @@ function EditInstanceModal({
               className="mt-1 w-full rounded border bg-background px-3 py-2 text-sm font-mono"
             />
           </div>
-          <div>
-            <label className="text-sm font-medium">Config (JSON)</label>
-            <textarea
-              value={configJson}
-              onChange={(e) => setConfigJson(e.target.value)}
-              rows={4}
-              className="mt-1 w-full rounded border bg-background px-3 py-2 text-sm font-mono"
-            />
-          </div>
+          <PluginConfigFields
+            pluginName={instance.pluginName}
+            config={config}
+            onChange={setConfig}
+          />
           {updateMut.error && (
             <p className="text-sm text-red-600">
               {updateMut.error.message}
@@ -389,20 +549,14 @@ function EditInstanceModal({
               Cancel
             </Button>
             <Button
-              onClick={() => {
-                let config: Record<string, unknown>;
-                try {
-                  config = JSON.parse(configJson);
-                } catch {
-                  return;
-                }
+              onClick={() =>
                 updateMut.mutate({
                   id: instance.id,
                   instanceName: name,
                   cronExpr: cron,
                   config,
-                });
-              }}
+                })
+              }
               disabled={!name || updateMut.isPending}
             >
               <Check className="mr-2 h-4 w-4" />
