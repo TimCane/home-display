@@ -8,11 +8,15 @@ import { ConditionsEditor } from "./ConditionsEditor";
 import { X, Copy, Check, ChevronDown, ChevronRight } from "lucide-react";
 import type { Condition } from "../../shared/conditions";
 
-const ELEMENT_OPTIONS = [
+type AllowedElement = "image_upload" | "text" | "rect" | "line" | "circle" | "icon";
+
+const ELEMENT_OPTIONS: readonly AllowedElement[] = [
   "image_upload",
   "text",
-  "shapes",
-  "icons",
+  "rect",
+  "line",
+  "circle",
+  "icon",
 ] as const;
 
 interface CreateEntryModalProps {
@@ -26,7 +30,7 @@ export function CreateEntryModal({ open, onClose }: CreateEntryModalProps) {
   // Form state
   const [guestMode, setGuestMode] = useState(false);
   const [submitterName, setSubmitterName] = useState("");
-  const [allowedElements, setAllowedElements] = useState<string[]>([
+  const [allowedElements, setAllowedElements] = useState<AllowedElement[]>([
     "image_upload",
   ]);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -57,7 +61,7 @@ export function CreateEntryModal({ open, onClose }: CreateEntryModalProps) {
     createMut.mutate({
       guestMode,
       submitterName: guestMode ? submitterName : undefined,
-      allowedElements: guestMode ? (allowedElements as any) : undefined,
+      allowedElements: guestMode ? allowedElements : undefined,
       enabled,
       baseWeight,
       conditions: conditions.length > 0 ? conditions : undefined,

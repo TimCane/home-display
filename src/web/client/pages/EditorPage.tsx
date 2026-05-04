@@ -1,4 +1,5 @@
 import { useParams } from "react-router-dom";
+import { TRPCClientError } from "@trpc/client";
 import { trpc } from "../trpc";
 import { EditorShell } from "../editor/EditorShell";
 import type { DraftData } from "../editor/EditorShell";
@@ -13,9 +14,11 @@ export function EditorPage() {
       enabled: !!uuid,
       retry: (count, error) => {
         // Don't retry auth or validation errors
-        const code = (error as any)?.data?.code;
-        if (code === "UNAUTHORIZED" || code === "NOT_FOUND" || code === "BAD_REQUEST") {
-          return false;
+        if (error instanceof TRPCClientError) {
+          const code = error.data?.code;
+          if (code === "UNAUTHORIZED" || code === "NOT_FOUND" || code === "BAD_REQUEST") {
+            return false;
+          }
         }
         return count < 2;
       },
@@ -31,7 +34,8 @@ export function EditorPage() {
   }
 
   if (draft.error) {
-    const code = (draft.error as any)?.data?.code;
+    const code =
+      draft.error instanceof TRPCClientError ? draft.error.data?.code : undefined;
 
     // Non-guest draft without admin session → redirect to login
     if (code === "UNAUTHORIZED") {
