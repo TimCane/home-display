@@ -1,4 +1,5 @@
 import { z } from "zod";
+import * as cron from "node-cron";
 
 /**
  * Zod schema and default value for each app_settings key.
@@ -22,7 +23,9 @@ export const settingsSchema = {
     },
   },
   scheduler_cron: {
-    schema: z.string().min(1),
+    schema: z.string().min(1).refine((v) => cron.validate(v), {
+      message: "Invalid cron expression",
+    }),
     default: "*/30 * * * *",
   },
   app_tz: {

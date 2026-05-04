@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { eq, desc } from "drizzle-orm";
+import * as cron from "node-cron";
+import { eq, desc, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { router, adminProcedure } from "../trpc.js";
 import { entries, generatorInstances, generatorRuns } from "../../db/schema.js";
@@ -53,7 +54,9 @@ export const generatorRouter = router({
         renderer: z.string().min(1),
         instanceName: z.string().min(1),
         config: z.record(z.string(), z.unknown()),
-        cronExpr: z.string().min(1),
+        cronExpr: z.string().min(1).refine((v) => cron.validate(v), {
+          message: "Invalid cron expression",
+        }),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -121,7 +124,9 @@ export const generatorRouter = router({
         id: z.string().uuid(),
         instanceName: z.string().min(1).optional(),
         config: z.record(z.string(), z.unknown()).optional(),
-        cronExpr: z.string().min(1).optional(),
+        cronExpr: z.string().min(1).refine((v) => cron.validate(v), {
+          message: "Invalid cron expression",
+        }).optional(),
         renderer: z.string().min(1).optional(),
       }),
     )
