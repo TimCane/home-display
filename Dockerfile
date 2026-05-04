@@ -7,7 +7,7 @@ RUN pnpm install --frozen-lockfile
 
 # ── build ─────────────────────────────────────────────────────────
 FROM deps AS build
-COPY tsconfig.json tsconfig.server.json tsconfig.client.json tsconfig.shared.json vite.config.ts ./
+COPY tsconfig.json tsconfig.server.json tsconfig.client.json tsconfig.shared.json vite.config.ts postcss.config.js ./
 COPY src/web/ src/web/
 RUN pnpm build
 
