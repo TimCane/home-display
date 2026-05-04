@@ -10,8 +10,7 @@ import {
   reregisterInstance,
   runNow,
 } from "../../generators/runtime.js";
-
-const FRAMEBUFFER_SIZE = 163_200;
+import { FRAME_BYTES } from "../../../shared/framebuffer.js";
 
 export const generatorRouter = router({
   /** List all registered plugins with their renderer names and config schema. */
@@ -83,7 +82,7 @@ export const generatorRouter = router({
       }
 
       // Create placeholder entry (enabled=false, blank framebuffer)
-      const blankFramebuffer = Buffer.alloc(FRAMEBUFFER_SIZE, 0);
+      const blankFramebuffer = Buffer.alloc(FRAME_BYTES, 0);
       const [entry] = await ctx.db
         .insert(entries)
         .values({

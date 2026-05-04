@@ -11,8 +11,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { entries, generatorInstances, generatorRuns } from "../db/schema.js";
 import { getPlugin } from "./registry.js";
-
-const FRAMEBUFFER_SIZE = 163_200;
+import { FRAME_BYTES } from "../../shared/framebuffer.js";
 
 /** Active cron tasks keyed by instance id. */
 const tasks = new Map<string, cron.ScheduledTask>();
@@ -52,11 +51,11 @@ async function executeRun(instanceId: string): Promise<void> {
     const framebuffer = await rendererFn(data, config);
 
     // Validate size
-    if (framebuffer.length !== FRAMEBUFFER_SIZE) {
+    if (framebuffer.length !== FRAME_BYTES) {
       await logRun(
         instanceId,
         false,
-        `Renderer returned ${framebuffer.length} bytes, expected ${FRAMEBUFFER_SIZE}`,
+        `Renderer returned ${framebuffer.length} bytes, expected ${FRAME_BYTES}`,
       );
       return;
     }

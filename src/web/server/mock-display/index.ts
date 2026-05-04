@@ -1,8 +1,7 @@
 import { Hono } from "hono";
 import { getSetting } from "../config/settings.js";
+import { FRAME_BYTES } from "../../shared/framebuffer.js";
 import { getState, pushFrame, startTick } from "./state.js";
-
-const EXPECTED_BODY_SIZE = 163_200;
 
 const mockDisplay = new Hono();
 
@@ -31,17 +30,17 @@ mockDisplay.post("/fb", async (c) => {
   }
 
   const contentLength = Number(c.req.header("content-length") ?? 0);
-  if (contentLength !== EXPECTED_BODY_SIZE) {
+  if (contentLength !== FRAME_BYTES) {
     return c.json(
-      { error: `Expected Content-Length ${EXPECTED_BODY_SIZE}, got ${contentLength}` },
+      { error: `Expected Content-Length ${FRAME_BYTES}, got ${contentLength}` },
       400
     );
   }
 
   const body = await c.req.arrayBuffer();
-  if (body.byteLength !== EXPECTED_BODY_SIZE) {
+  if (body.byteLength !== FRAME_BYTES) {
     return c.json(
-      { error: `Expected body size ${EXPECTED_BODY_SIZE}, got ${body.byteLength}` },
+      { error: `Expected body size ${FRAME_BYTES}, got ${body.byteLength}` },
       400
     );
   }
