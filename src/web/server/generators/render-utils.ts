@@ -21,7 +21,7 @@ export async function loadPalette(): Promise<Palette> {
     g: parseInt(hex.slice(3, 5), 16),
     b: parseInt(hex.slice(5, 7), 16),
   });
-  return [parse(raw.black), parse(raw.white), parse(raw.red), parse(raw.yellow)];
+  return [parse(raw.black), parse(raw.white), parse(raw.yellow), parse(raw.red)];
 }
 
 /** Read app_tz from settings. */

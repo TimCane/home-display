@@ -13,12 +13,12 @@ export interface PaletteColor {
 
 export type Palette = [PaletteColor, PaletteColor, PaletteColor, PaletteColor];
 
-/** Default palette — black / white / red / yellow (typical 4-colour e-paper). */
+/** Default palette — black / white / yellow / red (matches wire-format bit values). */
 export const DEFAULT_PALETTE: Palette = [
-  { r: 0, g: 0, b: 0 }, // 0 — black
-  { r: 255, g: 255, b: 255 }, // 1 — white
-  { r: 200, g: 0, b: 0 }, // 2 — red
-  { r: 255, g: 255, b: 0 }, // 3 — yellow
+  { r: 0, g: 0, b: 0 }, // 0 (bits 00) — black
+  { r: 255, g: 255, b: 255 }, // 1 (bits 01) — white
+  { r: 255, g: 255, b: 0 }, // 2 (bits 10) — yellow
+  { r: 200, g: 0, b: 0 }, // 3 (bits 11) — red
 ];
 
 /** Squared Euclidean distance in RGB space. */
