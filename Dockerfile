@@ -13,6 +13,9 @@ RUN pnpm build
 
 # ── runtime ───────────────────────────────────────────────────────
 FROM node:20-slim AS runtime
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libfontconfig1 \
+    && rm -rf /var/lib/apt/lists/*
 RUN corepack enable
 WORKDIR /app
 
