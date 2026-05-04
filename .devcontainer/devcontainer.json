@@ -1,0 +1,33 @@
+{
+  "name": "new-home-display",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/home-display",
+  "forwardPorts": [4321, 5432],
+  "portsAttributes": {
+    "4321": {
+      "label": "Application",
+      "onAutoForward": "openBrowser"
+    },
+    "5432": {
+      "label": "Postgres",
+      "onAutoForward": "silent"
+    }
+  },
+  "postCreateCommand": "npm install",
+  "postAttachCommand": "npm run dev",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "bradlc.vscode-tailwindcss",
+        "DavidAnson.vscode-markdownlint",
+        "anthropic.claude-code",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  },
+  "features": {
+    "ghcr.io/timcane/devcontainer-features/claude-code-passthrough:latest": {}
+  }
+}

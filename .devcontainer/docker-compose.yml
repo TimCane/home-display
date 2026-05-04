@@ -1,0 +1,25 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ../..:/workspaces:cached
+    command: sleep infinity
+    networks:
+      - backend
+
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: display
+      POSTGRES_USER: display
+      POSTGRES_DB: home_display
+    ports:
+      - "5432:5432"
+    networks:
+      - backend
+
+networks:
+  backend:
