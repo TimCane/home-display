@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { trpc } from "../trpc";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -135,6 +136,81 @@ export function EntriesPage() {
   );
 }
 
+function ThumbnailWithPopover({
+  entryId,
+  updatedAt,
+}: {
+  entryId: string;
+  updatedAt: Date;
+}) {
+  const thumbRef = useRef<HTMLDivElement>(null);
+  const [popover, setPopover] = useState<{ top: number; left: number } | null>(
+    null,
+  );
+  const hideTimeout = useRef<ReturnType<typeof setTimeout>>();
+
+  const show = useCallback(() => {
+    clearTimeout(hideTimeout.current);
+    const el = thumbRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const popoverW = 480;
+    const popoverH = popoverW * 0.75; // approximate aspect ratio
+    let left = rect.right + 8;
+    let top = rect.top;
+    // Keep within viewport
+    if (left + popoverW > window.innerWidth - 8) {
+      left = rect.left - popoverW - 8;
+    }
+    if (top + popoverH > window.innerHeight - 8) {
+      top = window.innerHeight - popoverH - 8;
+    }
+    if (top < 8) top = 8;
+    setPopover({ top, left });
+  }, []);
+
+  const hide = useCallback(() => {
+    hideTimeout.current = setTimeout(() => setPopover(null), 100);
+  }, []);
+
+  const keepOpen = useCallback(() => {
+    clearTimeout(hideTimeout.current);
+  }, []);
+
+  return (
+    <>
+      <div
+        ref={thumbRef}
+        onMouseEnter={show}
+        onMouseLeave={hide}
+        className="inline-block"
+      >
+        <FramebufferImage
+          entryId={entryId}
+          updatedAt={updatedAt}
+          className="w-[120px] rounded cursor-zoom-in"
+        />
+      </div>
+      {popover &&
+        createPortal(
+          <div
+            onMouseEnter={keepOpen}
+            onMouseLeave={hide}
+            className="fixed z-[100] rounded-lg border bg-popover shadow-xl p-1"
+            style={{ top: popover.top, left: popover.left }}
+          >
+            <FramebufferImage
+              entryId={entryId}
+              updatedAt={updatedAt}
+              className="w-[480px] rounded"
+            />
+          </div>,
+          document.body,
+        )}
+    </>
+  );
+}
+
 function EntryTableRow({
   entry,
   isEditing,
@@ -163,11 +239,7 @@ function EntryTableRow({
   return (
     <tr className="border-b">
       <td className="py-2 pr-4">
-        <FramebufferImage
-          entryId={entry.id}
-          updatedAt={entry.updatedAt}
-          className="w-[120px] rounded"
-        />
+        <ThumbnailWithPopover entryId={entry.id} updatedAt={entry.updatedAt} />
       </td>
       <td className="py-2 pr-4 font-medium">{entry.title}</td>
       <td className="py-2 pr-4">{sourceBadge(entry.source)}</td>
