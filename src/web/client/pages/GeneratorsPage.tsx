@@ -216,6 +216,18 @@ function defaultConfigForPlugin(pluginName: string): Record<string, unknown> {
       return { location: { lat: 0, lon: 0, name: "" }, units: "metric" };
     case "calendar":
       return { ics_url: "", calendar_name: "" };
+    case "holiday-weather":
+      return {
+        units: "metric",
+        trips: [
+          {
+            name: "",
+            location: { lat: 0, lon: 0, name: "" },
+            startDate: "",
+            endDate: "",
+          },
+        ],
+      };
     default:
       return {};
   }
@@ -346,6 +358,201 @@ function CalendarConfigForm({
   );
 }
 
+interface TripEntry {
+  name: string;
+  location: { lat: number; lon: number; name: string };
+  startDate: string;
+  endDate: string;
+}
+
+function HolidayWeatherConfigForm({
+  config,
+  onChange,
+}: {
+  config: Record<string, unknown>;
+  onChange: (config: Record<string, unknown>) => void;
+}) {
+  const trips = (config.trips ?? []) as TripEntry[];
+  const units = (config.units ?? "metric") as string;
+
+  const inputClass =
+    "mt-1 w-full rounded border bg-background px-3 py-2 text-sm";
+
+  const updateTrip = (index: number, patch: Partial<TripEntry>) => {
+    const updated = trips.map((t, i) =>
+      i === index ? { ...t, ...patch } : t,
+    );
+    onChange({ ...config, trips: updated });
+  };
+
+  const updateTripLocation = (
+    index: number,
+    locPatch: Partial<TripEntry["location"]>,
+  ) => {
+    const updated = trips.map((t, i) =>
+      i === index
+        ? { ...t, location: { ...t.location, ...locPatch } }
+        : t,
+    );
+    onChange({ ...config, trips: updated });
+  };
+
+  const addTrip = () => {
+    onChange({
+      ...config,
+      trips: [
+        ...trips,
+        {
+          name: "",
+          location: { lat: 0, lon: 0, name: "" },
+          startDate: "",
+          endDate: "",
+        },
+      ],
+    });
+  };
+
+  const removeTrip = (index: number) => {
+    onChange({
+      ...config,
+      trips: trips.filter((_, i) => i !== index),
+    });
+  };
+
+  return (
+    <>
+      <div>
+        <label className="text-sm font-medium">Units</label>
+        <select
+          value={units}
+          onChange={(e) => onChange({ ...config, units: e.target.value })}
+          className={inputClass}
+        >
+          <option value="metric">Metric</option>
+          <option value="imperial">Imperial</option>
+        </select>
+      </div>
+
+      {trips.map((trip, i) => (
+        <div
+          key={i}
+          className="rounded border p-3 space-y-2"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Trip {i + 1}</span>
+            {trips.length > 1 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => removeTrip(i)}
+                className="text-xs text-destructive"
+              >
+                Remove
+              </Button>
+            )}
+          </div>
+
+          <div>
+            <label className="text-xs text-muted-foreground">Trip Name</label>
+            <input
+              type="text"
+              value={trip.name}
+              onChange={(e) => updateTrip(i, { name: e.target.value })}
+              className={inputClass}
+              placeholder="Kos Holiday"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs text-muted-foreground">
+              Location Name
+            </label>
+            <input
+              type="text"
+              value={trip.location.name}
+              onChange={(e) =>
+                updateTripLocation(i, { name: e.target.value })
+              }
+              className={inputClass}
+              placeholder="Kos, Greece"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-muted-foreground">Latitude</label>
+              <input
+                type="number"
+                step="any"
+                min={-90}
+                max={90}
+                value={trip.location.lat}
+                onChange={(e) =>
+                  updateTripLocation(i, {
+                    lat: parseFloat(e.target.value) || 0,
+                  })
+                }
+                className={inputClass}
+                placeholder="36.89"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Longitude</label>
+              <input
+                type="number"
+                step="any"
+                min={-180}
+                max={180}
+                value={trip.location.lon}
+                onChange={(e) =>
+                  updateTripLocation(i, {
+                    lon: parseFloat(e.target.value) || 0,
+                  })
+                }
+                className={inputClass}
+                placeholder="27.09"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-muted-foreground">
+                Start Date
+              </label>
+              <input
+                type="date"
+                value={trip.startDate}
+                onChange={(e) =>
+                  updateTrip(i, { startDate: e.target.value })
+                }
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">End Date</label>
+              <input
+                type="date"
+                value={trip.endDate}
+                onChange={(e) =>
+                  updateTrip(i, { endDate: e.target.value })
+                }
+                className={inputClass}
+              />
+            </div>
+          </div>
+        </div>
+      ))}
+
+      {trips.length < 8 && (
+        <Button variant="outline" size="sm" onClick={addTrip}>
+          + Add Trip
+        </Button>
+      )}
+    </>
+  );
+}
+
 function PluginConfigFields({
   pluginName,
   config,
@@ -360,6 +567,8 @@ function PluginConfigFields({
       return <WeatherConfigForm config={config} onChange={onChange} />;
     case "calendar":
       return <CalendarConfigForm config={config} onChange={onChange} />;
+    case "holiday-weather":
+      return <HolidayWeatherConfigForm config={config} onChange={onChange} />;
     default:
       return (
         <div>
