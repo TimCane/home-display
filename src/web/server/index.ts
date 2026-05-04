@@ -1,6 +1,7 @@
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { boot } from "./boot.js";
 import { authRoutes } from "./auth/oauth.js";
@@ -14,6 +15,12 @@ import { sseSystemRoute } from "./http/sse-system.js";
 import { logger } from "./logger.js";
 
 const app = new Hono();
+
+// Global body size limit — 1 MB covers tRPC JSON payloads
+app.use("*", bodyLimit({ maxSize: 1024 * 1024 }));
+
+// Tighter limit on framebuffer upload (~200 KB; frame is exactly 163,200 bytes)
+app.use("/api/draft/:id/commit", bodyLimit({ maxSize: 200 * 1024 }));
 
 // Request logging
 app.use("*", async (c, next) => {
