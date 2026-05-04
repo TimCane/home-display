@@ -12,6 +12,10 @@ import { getEnv } from "./config/env.js";
 import { framebufferRoute } from "./http/framebuffer.js";
 import { draftCommitRoute } from "./http/draft-commit.js";
 import { sseSystemRoute } from "./http/sse-system.js";
+import { stopSchedulerCron } from "./scheduler/cron.js";
+import { stopHealthCron } from "./health/cron.js";
+import { stopAll as stopAllGenerators } from "./generators/runtime.js";
+import { pool } from "./db/index.js";
 import { logger } from "./logger.js";
 
 const app = new Hono();
@@ -100,11 +104,56 @@ if (process.env.NODE_ENV === "production") {
 }
 
 const port = Number(process.env.PORT) || 3100;
+const SHUTDOWN_TIMEOUT_MS = 30_000;
 
 async function main() {
   await boot();
+  const server = serve({ fetch: app.fetch, port });
   logger.info({ port }, "Server listening");
-  serve({ fetch: app.fetch, port });
+
+  let shuttingDown = false;
+
+  async function shutdown(signal: string) {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    logger.info({ signal }, "Shutdown signal received, draining…");
+
+    // Force-exit safety net
+    const forceTimer = setTimeout(() => {
+      logger.error("Graceful shutdown timed out, forcing exit");
+      process.exit(1);
+    }, SHUTDOWN_TIMEOUT_MS);
+    forceTimer.unref();
+
+    // 1. Stop accepting new connections and wait for in-flight requests
+    await new Promise<void>((resolve) => {
+      server.close((err) => {
+        if (err) logger.error({ err }, "Error closing HTTP server");
+        resolve();
+      });
+    });
+    logger.info("HTTP server closed");
+
+    // 2. Stop all cron tasks
+    stopSchedulerCron();
+    stopHealthCron();
+    stopAllGenerators();
+    logger.info("Cron tasks stopped");
+
+    // 3. Close database pool
+    try {
+      await pool.end();
+      logger.info("Database pool closed");
+    } catch (err) {
+      logger.error({ err }, "Error closing database pool");
+    }
+
+    logger.info("Shutdown complete");
+    process.exit(0);
+  }
+
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 }
 
 main();
