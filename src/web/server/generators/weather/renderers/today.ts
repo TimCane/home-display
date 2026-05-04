@@ -1,6 +1,6 @@
 /**
  * Weather "today" renderer.
- * Layout: current temp (big), condition icon + label, high/low, hourly temp curve.
+ * Layout: black header bar, current conditions panel, hourly area chart.
  */
 
 import type { WeatherData } from "../fetch.js";
@@ -11,6 +11,10 @@ import {
   loadTimezone,
   canvasToFramebuffer,
   drawWeatherIcon,
+  drawHeaderBar,
+  drawFilledAreaChart,
+  roundedRectPath,
+  BLACK, WHITE, YELLOW, RED,
 } from "../../render-utils.js";
 import { WIDTH, HEIGHT } from "../../../../shared/framebuffer.js";
 
@@ -28,44 +32,18 @@ export async function renderToday(
   const canvas = createFrame();
   const ctx = canvas.getContext("2d");
 
-  const black = "#000000";
-  const white = "#FFFFFF";
-  const red = "#CC0000";
-
-  // Background
-  ctx.fillStyle = white;
+  // ── Background ──
+  ctx.fillStyle = WHITE;
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-  // Location name
-  ctx.fillStyle = black;
-  ctx.font = "bold 36px Inter";
+  // ── Header bar (0-70) ──
+  drawHeaderBar(ctx, 0, 70, BLACK);
+  ctx.fillStyle = WHITE;
+  ctx.font = "bold 32px Inter";
   ctx.textAlign = "left";
-  ctx.textBaseline = "top";
-  ctx.fillText(config.location.name, 40, 30);
+  ctx.textBaseline = "middle";
+  ctx.fillText(config.location.name, 40, 36);
 
-  // Current temperature (big)
-  const unitSymbol = config.units === "imperial" ? "°F" : "°C";
-  ctx.font = "bold 140px Inter";
-  ctx.textAlign = "left";
-  ctx.textBaseline = "top";
-  ctx.fillText(`${Math.round(data.current.temperature)}${unitSymbol}`, 40, 80);
-
-  // Weather condition icon + label
-  const { label, icon } = weatherLabel(data.current.weatherCode);
-  drawWeatherIcon(ctx, icon, 560, 80, 120, black);
-  ctx.font = "bold 36px Inter";
-  ctx.textAlign = "center";
-  ctx.fillText(label, 620, 210);
-
-  // High / Low
-  ctx.font = "32px Inter";
-  ctx.textAlign = "left";
-  ctx.fillStyle = red;
-  ctx.fillText(`H: ${Math.round(data.today.high)}°`, 560, 270);
-  ctx.fillStyle = black;
-  ctx.fillText(`L: ${Math.round(data.today.low)}°`, 720, 270);
-
-  // Date
   const now = new Date();
   const dateStr = now.toLocaleDateString("en-GB", {
     timeZone: tz,
@@ -73,24 +51,66 @@ export async function renderToday(
     day: "numeric",
     month: "short",
   });
-  ctx.fillStyle = black;
-  ctx.font = "28px Inter";
-  ctx.textAlign = "left";
-  ctx.fillText(dateStr, 560, 320);
+  ctx.font = "24px Inter";
+  ctx.textAlign = "right";
+  ctx.fillText(dateStr, WIDTH - 40, 36);
 
-  // Hourly temperature curve
-  const curveTop = 400;
-  const curveBottom = 620;
-  const curveLeft = 60;
+  // ── Current conditions (80-360) ──
+  const unitSymbol = config.units === "imperial" ? "°F" : "°C";
+
+  // Big temperature
+  ctx.fillStyle = BLACK;
+  ctx.font = "bold 150px Inter";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.fillText(`${Math.round(data.current.temperature)}${unitSymbol}`, 40, 90);
+
+  // High/Low — red pill for high, plain for low
+  const highText = `H: ${Math.round(data.today.high)}°`;
+  const lowText = `L: ${Math.round(data.today.low)}°`;
+
+  ctx.font = "bold 26px Inter";
+  const highW = ctx.measureText(highText).width + 24;
+  roundedRectPath(ctx, 44, 280, highW, 38, 19);
+  ctx.fillStyle = RED;
+  ctx.fill();
+  ctx.fillStyle = WHITE;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText(highText, 56, 300);
+
+  ctx.fillStyle = BLACK;
+  ctx.fillText(lowText, 60 + highW + 16, 300);
+
+  // Weather icon (right side)
+  const { label, icon } = weatherLabel(data.current.weatherCode);
+  drawWeatherIcon(ctx, icon, 560, 95, 160, BLACK);
+
+  // Condition label
+  ctx.fillStyle = BLACK;
+  ctx.font = "bold 32px Inter";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  ctx.fillText(label, 640, 265);
+
+  // Yellow accent line under label
+  ctx.fillStyle = YELLOW;
+  ctx.fillRect(580, 305, 120, 3);
+
+  // ── Hourly forecast (370-665) ──
+  const curveTop = 420;
+  const curveBottom = 635;
+  const curveLeft = 80;
   const curveRight = WIDTH - 60;
 
-  // Draw axis
-  ctx.strokeStyle = black;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(curveLeft, curveBottom);
-  ctx.lineTo(curveRight, curveBottom);
-  ctx.stroke();
+  // Section label with yellow accent bar
+  ctx.fillStyle = YELLOW;
+  ctx.fillRect(48, 378, 5, 22);
+  ctx.fillStyle = BLACK;
+  ctx.font = "bold 22px Inter";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.fillText("HOURLY FORECAST", 62, 378);
 
   if (data.hourly.length > 1) {
     const temps = data.hourly.map((h) => h.temperature);
@@ -99,52 +119,61 @@ export async function renderToday(
     const range = maxT - minT || 1;
     const step = (curveRight - curveLeft) / (data.hourly.length - 1);
 
-    // Draw curve
-    ctx.strokeStyle = black;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    for (let i = 0; i < data.hourly.length; i++) {
-      const x = curveLeft + i * step;
-      const y =
-        curveBottom -
-        ((temps[i] - minT) / range) * (curveBottom - curveTop);
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+    // Dashed grid lines
+    ctx.strokeStyle = BLACK;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 6]);
+    for (const frac of [0.25, 0.5, 0.75]) {
+      const gy = curveBottom - frac * (curveBottom - curveTop);
+      ctx.beginPath();
+      ctx.moveTo(curveLeft, gy);
+      ctx.lineTo(curveRight, gy);
+      ctx.stroke();
     }
+    ctx.setLineDash([]);
+
+    // Baseline
+    ctx.strokeStyle = BLACK;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(curveLeft, curveBottom);
+    ctx.lineTo(curveRight, curveBottom);
     ctx.stroke();
 
-    // Hour labels (every 3 hours)
-    ctx.fillStyle = black;
-    ctx.font = "20px Inter";
+    // Build points
+    const points = temps.map((t, i) => ({
+      x: curveLeft + i * step,
+      y: curveBottom - ((t - minT) / range) * (curveBottom - curveTop),
+    }));
+
+    // Filled area chart
+    drawFilledAreaChart(ctx, points, curveBottom, {
+      fillColor: YELLOW,
+      strokeColor: BLACK,
+      dotColor: RED,
+      lineWidth: 3,
+      dotRadius: 5,
+      dotEvery: 3,
+    });
+
+    // Temperature labels at dot positions
+    ctx.fillStyle = BLACK;
+    ctx.font = "bold 18px Inter";
     ctx.textAlign = "center";
-    ctx.textBaseline = "top";
-    for (let i = 0; i < data.hourly.length; i += 3) {
-      const x = curveLeft + i * step;
-      const h = data.hourly[i].hour;
-      ctx.fillText(`${h}:00`, x, curveBottom + 8);
+    ctx.textBaseline = "bottom";
+    for (let i = 0; i < points.length; i += 3) {
+      ctx.fillText(`${Math.round(temps[i])}°`, points[i].x, points[i].y - 10);
     }
 
-    // Temp labels at start and end
-    ctx.textBaseline = "bottom";
-    const firstY =
-      curveBottom - ((temps[0] - minT) / range) * (curveBottom - curveTop);
-    ctx.fillText(`${Math.round(temps[0])}°`, curveLeft, firstY - 8);
-    const lastY =
-      curveBottom -
-      ((temps[temps.length - 1] - minT) / range) * (curveBottom - curveTop);
-    ctx.fillText(
-      `${Math.round(temps[temps.length - 1])}°`,
-      curveRight,
-      lastY - 8,
-    );
+    // Hour labels below baseline
+    ctx.fillStyle = BLACK;
+    ctx.font = "18px Inter";
+    ctx.textBaseline = "top";
+    for (let i = 0; i < data.hourly.length; i += 3) {
+      const hx = curveLeft + i * step;
+      ctx.fillText(`${data.hourly[i].hour}:00`, hx, curveBottom + 6);
+    }
   }
-
-  // "Hourly" label
-  ctx.fillStyle = black;
-  ctx.font = "bold 26px Inter";
-  ctx.textAlign = "left";
-  ctx.textBaseline = "bottom";
-  ctx.fillText("Hourly Forecast", curveLeft, curveTop - 10);
 
   return canvasToFramebuffer(canvas, palette);
 }

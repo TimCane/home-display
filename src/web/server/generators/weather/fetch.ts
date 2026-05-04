@@ -108,7 +108,7 @@ export async function fetchWeather(
 export function weatherLabel(code: number): { label: string; icon: string } {
   if (code === 0) return { label: "Clear", icon: "sun" };
   if (code <= 3) return { label: "Cloudy", icon: "cloud" };
-  if (code <= 49) return { label: "Fog", icon: "cloud" };
+  if (code <= 49) return { label: "Fog", icon: "fog" };
   if (code <= 59) return { label: "Drizzle", icon: "rain" };
   if (code <= 69) return { label: "Rain", icon: "rain" };
   if (code <= 79) return { label: "Snow", icon: "snow" };

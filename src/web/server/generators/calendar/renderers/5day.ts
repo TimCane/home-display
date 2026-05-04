@@ -1,6 +1,6 @@
 /**
  * Calendar "5day" renderer.
- * Layout: agenda-style list across the next five days.
+ * Layout: yellow header bar, structured day sections with accent bars.
  */
 
 import type { CalendarData } from "../fetch.js";
@@ -10,6 +10,10 @@ import {
   loadPalette,
   loadTimezone,
   canvasToFramebuffer,
+  drawHeaderBar,
+  roundedRectPath,
+  truncateText,
+  BLACK, WHITE, YELLOW, RED,
 } from "../../render-utils.js";
 import { WIDTH, HEIGHT } from "../../../../shared/framebuffer.js";
 
@@ -27,36 +31,53 @@ export async function render5Day(
   const canvas = createFrame();
   const ctx = canvas.getContext("2d");
 
-  const black = "#000000";
-  const white = "#FFFFFF";
-  const red = "#CC0000";
+  const leftMargin = 36;
+  const rightMargin = WIDTH - 36;
+  const contentW = rightMargin - leftMargin;
 
-  // Background
-  ctx.fillStyle = white;
+  // ── Background ──
+  ctx.fillStyle = WHITE;
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-  // Title
-  ctx.fillStyle = black;
-  ctx.font = "bold 36px Inter";
+  // ── Header bar (0-60) ──
+  drawHeaderBar(ctx, 0, 60, YELLOW);
+  ctx.fillStyle = BLACK;
+  ctx.font = "bold 28px Inter";
   ctx.textAlign = "left";
-  ctx.textBaseline = "top";
-  ctx.fillText(`${data.calendarName} — 5-Day Agenda`, 40, 30);
+  ctx.textBaseline = "middle";
+  ctx.fillText(`${data.calendarName} — 5-Day Agenda`, 40, 31);
 
-  // Bucket into 5 days
+  // ── Day sections ──
   const buckets = bucketByDay(data.events, tz, 5);
   const keys = [...buckets.keys()];
 
-  let y = 90;
-  const lineHeight = 34;
-  const maxY = HEIGHT - 30;
+  const dayHeaderH = 40;
+  const eventRowH = 38;
+  const dayGap = 10;
+  const maxY = HEIGHT - 16;
 
+  // Pre-calculate to determine per-day event cap
+  const totalEvents = keys.reduce(
+    (sum, k) => sum + (buckets.get(k)?.length ?? 0), 0,
+  );
+  const usableH = maxY - 72; // below header
+  const headersH = keys.length * (dayHeaderH + dayGap);
+  const availableForEvents = usableH - headersH;
+  const daysWithEvents = keys.filter(
+    (k) => (buckets.get(k)?.length ?? 0) > 0,
+  ).length;
+  const perDayCap = daysWithEvents > 0
+    ? Math.max(2, Math.floor(availableForEvents / eventRowH / daysWithEvents))
+    : 5;
+
+  let y = 72;
   let hasAnyEvents = false;
 
   for (let d = 0; d < keys.length && y < maxY; d++) {
     const dateKey = keys[d];
     const events = buckets.get(dateKey) ?? [];
 
-    // Day header
+    // Day header — black rounded rect
     const date = new Date(dateKey + "T12:00:00");
     const dayLabel = date.toLocaleDateString("en-GB", {
       timeZone: tz,
@@ -65,38 +86,54 @@ export async function render5Day(
       month: "short",
     });
 
-    ctx.fillStyle = black;
-    ctx.font = "bold 26px Inter";
-    ctx.textAlign = "left";
-    ctx.fillText(dayLabel, 40, y);
-    y += 8;
+    roundedRectPath(ctx, leftMargin, y, contentW, dayHeaderH, 8);
+    ctx.fillStyle = BLACK;
+    ctx.fill();
 
-    // Divider
-    ctx.strokeStyle = black;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(40, y + 24);
-    ctx.lineTo(WIDTH - 40, y + 24);
-    ctx.stroke();
-    y += 32;
+    // Day name (white)
+    ctx.fillStyle = WHITE;
+    ctx.font = "bold 22px Inter";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(dayLabel, leftMargin + 16, y + dayHeaderH / 2);
+
+    // Event count badge (yellow pill on right side)
+    if (events.length > 0) {
+      const countText = `${events.length} event${events.length > 1 ? "s" : ""}`;
+      ctx.font = "bold 16px Inter";
+      const countW = ctx.measureText(countText).width + 16;
+      const badgeX = rightMargin - countW - 10;
+      roundedRectPath(ctx, badgeX, y + 8, countW, 24, 12);
+      ctx.fillStyle = YELLOW;
+      ctx.fill();
+      ctx.fillStyle = BLACK;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(countText, badgeX + countW / 2, y + 20);
+    }
+
+    y += dayHeaderH + 6;
 
     if (events.length === 0) {
-      ctx.fillStyle = black;
-      ctx.font = "italic 22px Inter";
-      ctx.fillText("No events", 60, y);
-      y += lineHeight + 6;
+      ctx.fillStyle = BLACK;
+      ctx.font = "italic 20px Inter";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillText("No events", leftMargin + 20, y);
+      y += eventRowH;
+      y += dayGap;
       continue;
     }
 
     hasAnyEvents = true;
+    const visibleCount = Math.min(events.length, perDayCap);
 
-    for (const evt of events) {
-      if (y >= maxY) {
-        ctx.fillStyle = black;
-        ctx.font = "italic 20px Inter";
-        ctx.fillText("...", 60, y);
-        break;
-      }
+    for (let i = 0; i < visibleCount && y < maxY; i++) {
+      const evt = events[i];
+
+      // Red accent bar
+      ctx.fillStyle = RED;
+      ctx.fillRect(leftMargin + 8, y + 4, 4, eventRowH - 10);
 
       // Time
       let timeStr: string;
@@ -111,28 +148,52 @@ export async function render5Day(
         });
       }
 
-      ctx.fillStyle = red;
-      ctx.font = "bold 22px Inter";
-      ctx.fillText(timeStr, 60, y);
+      ctx.fillStyle = RED;
+      ctx.font = "bold 20px Inter";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillText(timeStr, leftMargin + 22, y + 6);
 
       // Summary
-      ctx.fillStyle = black;
-      ctx.font = "22px Inter";
-      const maxTextWidth = WIDTH - 240;
-      let summary = evt.summary;
-      while (ctx.measureText(summary).width > maxTextWidth && summary.length > 3) {
-        summary = summary.slice(0, -4) + "...";
-      }
-      ctx.fillText(summary, 180, y);
+      ctx.fillStyle = BLACK;
+      ctx.font = "20px Inter";
+      const summaryX = leftMargin + 140;
+      const maxTextW = rightMargin - summaryX - 8;
+      const summary = truncateText(ctx, evt.summary, maxTextW);
+      ctx.fillText(summary, summaryX, y + 6);
 
-      y += lineHeight;
+      // Separator
+      if (i < visibleCount - 1) {
+        ctx.strokeStyle = BLACK;
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(leftMargin + 18, y + eventRowH - 2);
+        ctx.lineTo(rightMargin - 8, y + eventRowH - 2);
+        ctx.stroke();
+      }
+
+      y += eventRowH;
     }
 
-    y += 10; // Gap between days
+    // Overflow
+    if (events.length > visibleCount) {
+      ctx.fillStyle = BLACK;
+      ctx.font = "italic 18px Inter";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillText(
+        `+${events.length - visibleCount} more`,
+        leftMargin + 22,
+        y + 2,
+      );
+      y += 24;
+    }
+
+    y += dayGap;
   }
 
   if (!hasAnyEvents && keys.length > 0) {
-    ctx.fillStyle = black;
+    ctx.fillStyle = BLACK;
     ctx.font = "36px Inter";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";

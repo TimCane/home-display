@@ -1,6 +1,6 @@
 /**
  * Calendar "today_tomorrow" renderer.
- * Layout: two-column list — today's events on the left, tomorrow's on the right.
+ * Layout: yellow header bar, two-column list with time badges.
  */
 
 import type { CalendarData } from "../fetch.js";
@@ -10,6 +10,10 @@ import {
   loadPalette,
   loadTimezone,
   canvasToFramebuffer,
+  drawHeaderBar,
+  roundedRectPath,
+  truncateText,
+  BLACK, WHITE, YELLOW, RED,
 } from "../../render-utils.js";
 import { WIDTH, HEIGHT } from "../../../../shared/framebuffer.js";
 
@@ -27,44 +31,50 @@ export async function renderTodayTomorrow(
   const canvas = createFrame();
   const ctx = canvas.getContext("2d");
 
-  const black = "#000000";
-  const white = "#FFFFFF";
-  const red = "#CC0000";
-
-  // Background
-  ctx.fillStyle = white;
+  // ── Background ──
+  ctx.fillStyle = WHITE;
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-  // Title
-  ctx.fillStyle = black;
-  ctx.font = "bold 36px Inter";
+  // ── Header bar (0-65) ──
+  drawHeaderBar(ctx, 0, 65, YELLOW);
+  ctx.fillStyle = BLACK;
+  ctx.font = "bold 30px Inter";
   ctx.textAlign = "left";
-  ctx.textBaseline = "top";
-  ctx.fillText(data.calendarName, 40, 30);
+  ctx.textBaseline = "middle";
+  ctx.fillText(data.calendarName, 40, 33);
+  ctx.font = "22px Inter";
+  ctx.textAlign = "right";
+  ctx.fillText("Today & Tomorrow", WIDTH - 40, 33);
 
-  // Bucket into today & tomorrow
+  // ── Columns ──
   const buckets = bucketByDay(data.events, tz, 2);
   const keys = [...buckets.keys()];
 
-  const colWidth = (WIDTH - 80 - 20) / 2; // 40px margins + 20px divider gap
-  const headerY = 90;
+  const colWidth = 420;
+  const colLeft = [35, 500];
+  const headerY = 82;
   const listTop = 140;
-  const lineHeight = 42;
-  const maxEvents = Math.floor((HEIGHT - listTop - 20) / lineHeight);
+  const rowHeight = 54;
+  const maxEvents = Math.floor((HEIGHT - listTop - 20) / rowHeight);
+
+  // Vertical divider
+  ctx.strokeStyle = BLACK;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(WIDTH / 2 - 5, headerY);
+  ctx.lineTo(WIDTH / 2 - 5, HEIGHT - 15);
+  ctx.stroke();
 
   for (let col = 0; col < 2; col++) {
-    const x = 40 + col * (colWidth + 20);
+    const x = colLeft[col];
     const dateKey = keys[col];
     if (!dateKey) continue;
 
     const events = buckets.get(dateKey) ?? [];
 
-    // Column header
+    // Column sub-header
     const date = new Date(dateKey + "T12:00:00");
-    const dayLabel =
-      col === 0
-        ? "Today"
-        : "Tomorrow";
+    const dayLabel = col === 0 ? "Today" : "Tomorrow";
     const dateLabel = date.toLocaleDateString("en-GB", {
       timeZone: tz,
       weekday: "short",
@@ -72,35 +82,43 @@ export async function renderTodayTomorrow(
       month: "short",
     });
 
-    ctx.fillStyle = black;
-    ctx.font = "bold 30px Inter";
+    ctx.fillStyle = BLACK;
+    ctx.font = "bold 28px Inter";
     ctx.textAlign = "left";
-    ctx.fillText(`${dayLabel} — ${dateLabel}`, x, headerY);
+    ctx.textBaseline = "top";
+    ctx.fillText(dayLabel, x, headerY);
 
-    // Divider line under header
-    ctx.strokeStyle = black;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(x, headerY + 38);
-    ctx.lineTo(x + colWidth, headerY + 38);
-    ctx.stroke();
+    ctx.font = "22px Inter";
+    ctx.textAlign = "right";
+    ctx.fillText(dateLabel, x + colWidth, headerY + 4);
+
+    // Yellow underline accent
+    ctx.fillStyle = YELLOW;
+    ctx.fillRect(x, headerY + 36, colWidth, 4);
 
     if (events.length === 0) {
-      ctx.fillStyle = black;
+      ctx.fillStyle = BLACK;
       ctx.font = "italic 24px Inter";
-      ctx.fillText("No events", x, listTop);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillText("No events", x + 8, listTop);
       continue;
     }
 
-    // Event list
-    for (let i = 0; i < Math.min(events.length, maxEvents); i++) {
+    // Event rows
+    const visibleCount = Math.min(events.length, maxEvents);
+    for (let i = 0; i < visibleCount; i++) {
       const evt = events[i];
-      const y = listTop + i * lineHeight;
+      const ry = listTop + i * rowHeight;
 
-      // Time
+      // Time badge
       let timeStr: string;
+      let badgeColor: string;
+      let badgeTextColor: string;
       if (evt.allDay) {
-        timeStr = "All day";
+        timeStr = "ALL DAY";
+        badgeColor = YELLOW;
+        badgeTextColor = BLACK;
       } else {
         timeStr = evt.start.toLocaleTimeString("en-GB", {
           timeZone: tz,
@@ -108,42 +126,51 @@ export async function renderTodayTomorrow(
           minute: "2-digit",
           hour12: false,
         });
+        badgeColor = RED;
+        badgeTextColor = WHITE;
       }
 
-      ctx.fillStyle = red;
-      ctx.font = "bold 22px Inter";
-      ctx.textAlign = "left";
-      ctx.fillText(timeStr, x, y);
+      ctx.font = "bold 18px Inter";
+      const badgeW = Math.max(74, ctx.measureText(timeStr).width + 18);
+      roundedRectPath(ctx, x, ry + 2, badgeW, 30, 15);
+      ctx.fillStyle = badgeColor;
+      ctx.fill();
 
-      // Summary (truncate if too long)
-      ctx.fillStyle = black;
+      ctx.fillStyle = badgeTextColor;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(timeStr, x + badgeW / 2, ry + 17);
+
+      // Event summary
+      ctx.fillStyle = BLACK;
       ctx.font = "22px Inter";
-      const maxTextWidth = colWidth - 110;
-      let summary = evt.summary;
-      while (ctx.measureText(summary).width > maxTextWidth && summary.length > 3) {
-        summary = summary.slice(0, -4) + "...";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      const maxTextW = colWidth - badgeW - 16;
+      const summary = truncateText(ctx, evt.summary, maxTextW);
+      ctx.fillText(summary, x + badgeW + 10, ry + 17);
+
+      // Subtle separator
+      if (i < visibleCount - 1) {
+        ctx.strokeStyle = BLACK;
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(x, ry + rowHeight - 4);
+        ctx.lineTo(x + colWidth, ry + rowHeight - 4);
+        ctx.stroke();
       }
-      ctx.fillText(summary, x + 100, y);
     }
 
+    // Overflow indicator
     if (events.length > maxEvents) {
-      ctx.fillStyle = black;
-      ctx.font = "italic 20px Inter";
-      ctx.fillText(
-        `+${events.length - maxEvents} more`,
-        x,
-        listTop + maxEvents * lineHeight,
-      );
+      const overflowY = listTop + maxEvents * rowHeight;
+      ctx.fillStyle = BLACK;
+      ctx.font = "italic 18px Inter";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillText(`+${events.length - maxEvents} more`, x + 8, overflowY);
     }
   }
-
-  // Vertical divider
-  ctx.strokeStyle = black;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(WIDTH / 2, headerY);
-  ctx.lineTo(WIDTH / 2, HEIGHT - 20);
-  ctx.stroke();
 
   return canvasToFramebuffer(canvas, palette);
 }
