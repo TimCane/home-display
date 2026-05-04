@@ -46,7 +46,10 @@ app.use("/api/trpc/*", async (c) => {
     const origin = c.req.header("origin");
     if (origin) {
       const expected = new URL(getEnv().APP_BASE_URL).origin;
-      if (origin !== expected) {
+      const isDev = process.env.NODE_ENV !== "production";
+      const isLocalhost =
+        isDev && origin.startsWith("http://localhost:");
+      if (origin !== expected && !isLocalhost) {
         return c.json({ error: "CSRF origin mismatch" }, 403);
       }
     }
