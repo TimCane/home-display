@@ -207,7 +207,7 @@ function ThumbnailWithPopover({
   const [popover, setPopover] = useState<{ top: number; left: number } | null>(
     null,
   );
-  const hideTimeout = useRef<ReturnType<typeof setTimeout>>();
+  const hideTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const show = useCallback(() => {
     clearTimeout(hideTimeout.current);
