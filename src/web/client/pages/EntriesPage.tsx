@@ -344,8 +344,9 @@ function EditEntryModal({
           </div>
 
           <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 text-sm">
+            <label htmlFor="entry-detail-enabled" className="flex items-center gap-2 text-sm">
               <input
+                id="entry-detail-enabled"
                 type="checkbox"
                 checked={enabled}
                 onChange={(e) => setEnabled(e.target.checked)}

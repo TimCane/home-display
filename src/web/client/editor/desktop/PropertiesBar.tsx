@@ -138,8 +138,9 @@ export function PropertiesBar() {
       )}
 
       {(layer.type === "rect" || layer.type === "circle") && (
-        <label className="flex items-center gap-1">
+        <label htmlFor={`layer-${layer.id}-filled`} className="flex items-center gap-1">
           <input
+            id={`layer-${layer.id}-filled`}
             type="checkbox"
             checked={layer.filled}
             onChange={(e) =>

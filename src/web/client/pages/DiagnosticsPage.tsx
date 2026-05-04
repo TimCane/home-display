@@ -107,10 +107,12 @@ export function DiagnosticsPage() {
                 {flagNames.map((name) => (
                   <label
                     key={name}
+                    htmlFor={`diag-flag-${name}`}
                     className="flex items-center justify-between text-sm"
                   >
                     <span>{name}</span>
                     <input
+                      id={`diag-flag-${name}`}
                       type="checkbox"
                       checked={flags[name] ?? false}
                       onChange={(e) =>

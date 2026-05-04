@@ -8,6 +8,7 @@ import {
   timestamp,
   customType,
   check,
+  index,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -45,25 +46,37 @@ export const entries = pgTable(
       "framebuffer_size",
       sql`octet_length(${table.framebuffer}) = 163200`
     ),
+    index("entries_enabled_idx").on(table.enabled),
   ]
 );
 
 // ─── entry_drafts ───────────────────────────────────────────────────────────
 
-export const entryDrafts = pgTable("entry_drafts", {
-  id: uuid().primaryKey().defaultRandom(),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-  consumedAt: timestamp("consumed_at", { withTimezone: true }),
-  guestMode: boolean("guest_mode").notNull().default(false),
-  submitterName: text("submitter_name"),
-  allowedElements: jsonb("allowed_elements").notNull().default(["image_upload"]),
-  enabled: boolean().notNull().default(true),
-  baseWeight: integer("base_weight").notNull().default(1),
-  conditions: jsonb().notNull().default([]),
-});
+export const entryDrafts = pgTable(
+  "entry_drafts",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    guestMode: boolean("guest_mode").notNull().default(false),
+    submitterName: text("submitter_name"),
+    allowedElements: jsonb("allowed_elements")
+      .notNull()
+      .default(["image_upload"]),
+    enabled: boolean().notNull().default(true),
+    baseWeight: integer("base_weight").notNull().default(1),
+    conditions: jsonb().notNull().default([]),
+  },
+  (table) => [
+    index("entry_drafts_consumed_at_expires_at_idx").on(
+      table.consumedAt,
+      table.expiresAt,
+    ),
+  ],
+);
 
 // ─── generator_instances ────────────────────────────────────────────────────
 
@@ -104,40 +117,57 @@ export const appSettings = pgTable("app_settings", {
 
 // ─── push_log ───────────────────────────────────────────────────────────────
 
-export const pushLog = pgTable("push_log", {
-  id: uuid().primaryKey().defaultRandom(),
-  entryId: uuid("entry_id").references(() => entries.id, {
-    onDelete: "set null",
-  }),
-  attemptedAt: timestamp("attempted_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  succeeded: boolean().notNull(),
-  firmwareStatus: text("firmware_status"),
-  panelUptimeAfter: integer("panel_uptime_after"),
-  error: text(),
-  trigger: text().notNull(), // 'tick' | 'display_now' | 'lock_change'
-});
+export const pushLog = pgTable(
+  "push_log",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    entryId: uuid("entry_id").references(() => entries.id, {
+      onDelete: "set null",
+    }),
+    attemptedAt: timestamp("attempted_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    succeeded: boolean().notNull(),
+    firmwareStatus: text("firmware_status"),
+    panelUptimeAfter: integer("panel_uptime_after"),
+    error: text(),
+    trigger: text().notNull(), // 'tick' | 'display_now' | 'lock_change'
+  },
+  (table) => [index("push_log_entry_id_idx").on(table.entryId)],
+);
 
 // ─── display_status_history ─────────────────────────────────────────────────
 
-export const displayStatusHistory = pgTable("display_status_history", {
-  id: uuid().primaryKey().defaultRandom(),
-  polledAt: timestamp("polled_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  reachable: boolean().notNull(),
-  status: jsonb(),
-});
+export const displayStatusHistory = pgTable(
+  "display_status_history",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    polledAt: timestamp("polled_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    reachable: boolean().notNull(),
+    status: jsonb(),
+  },
+  (table) => [index("display_status_history_polled_at_idx").on(table.polledAt)],
+);
 
 // ─── generator_runs ─────────────────────────────────────────────────────────
 
-export const generatorRuns = pgTable("generator_runs", {
-  id: uuid().primaryKey().defaultRandom(),
-  instanceId: uuid("instance_id")
-    .notNull()
-    .references(() => generatorInstances.id, { onDelete: "cascade" }),
-  ranAt: timestamp("ran_at", { withTimezone: true }).notNull().defaultNow(),
-  succeeded: boolean().notNull(),
-  error: text(),
-});
+export const generatorRuns = pgTable(
+  "generator_runs",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    instanceId: uuid("instance_id")
+      .notNull()
+      .references(() => generatorInstances.id, { onDelete: "cascade" }),
+    ranAt: timestamp("ran_at", { withTimezone: true }).notNull().defaultNow(),
+    succeeded: boolean().notNull(),
+    error: text(),
+  },
+  (table) => [
+    index("generator_runs_instance_id_ran_at_idx").on(
+      table.instanceId,
+      table.ranAt.desc(),
+    ),
+  ],
+);
