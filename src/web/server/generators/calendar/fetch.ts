@@ -2,7 +2,7 @@
  * ICS calendar feed fetcher + parser.
  */
 
-import * as ical from "node-ical";
+import ical, { type VEvent } from "node-ical";
 
 export interface CalendarEvent {
   summary: string;
@@ -34,7 +34,7 @@ export async function fetchCalendar(
     const component = parsed[key];
     if (!component || component.type !== "VEVENT") continue;
 
-    const evt = component as ical.VEvent;
+    const evt = component as VEvent;
     const start = evt.start instanceof Date ? evt.start : new Date(evt.start);
     const end = evt.end instanceof Date ? evt.end : new Date(evt.end ?? start);
 
