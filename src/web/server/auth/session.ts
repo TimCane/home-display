@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Context } from "hono";
 import { getEnv } from "../config/env.js";
+import { getCookie } from "./cookies.js";
 
 export interface SessionPayload {
   login: string;
@@ -54,7 +55,7 @@ export function verifySessionToken(token: string): SessionPayload | null {
  * Parse the session cookie from the request. Returns null if absent or invalid.
  */
 export function getSession(c: Context): SessionPayload | null {
-  const raw = getCookie(c, COOKIE_NAME);
+  const raw = getCookie(c.req, COOKIE_NAME);
   if (!raw) return null;
   return verifySessionToken(raw);
 }
@@ -96,13 +97,3 @@ export function clearSessionCookie(c: Context): void {
   );
 }
 
-/** Simple cookie parser — extracts a single cookie by name. */
-function getCookie(c: Context, name: string): string | undefined {
-  const header = c.req.header("cookie");
-  if (!header) return undefined;
-  for (const part of header.split(";")) {
-    const [k, ...v] = part.trim().split("=");
-    if (k === name) return v.join("=");
-  }
-  return undefined;
-}

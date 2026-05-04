@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { Hono } from "hono";
 import { getEnv } from "../config/env.js";
 import { setSessionCookie, clearSessionCookie } from "./session.js";
+import { getCookie } from "./cookies.js";
 
 const GITHUB_AUTHORIZE_URL = "https://github.com/login/oauth/authorize";
 const GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token";
@@ -50,7 +51,7 @@ authRoutes.get("/callback", async (c) => {
   const state = c.req.query("state");
 
   // Verify state
-  const storedState = getCookie(c, STATE_COOKIE);
+  const storedState = getCookie(c.req, STATE_COOKIE);
   if (!state || !storedState || state !== storedState) {
     return c.text("Invalid OAuth state", 403);
   }
@@ -118,7 +119,7 @@ authRoutes.get("/callback", async (c) => {
     append: true,
   });
 
-  const returnTo = decodeURIComponent(getCookie(c, RETURN_TO_COOKIE) || "/");
+  const returnTo = decodeURIComponent(getCookie(c.req, RETURN_TO_COOKIE) || "/");
   return c.redirect(returnTo);
 });
 
@@ -131,13 +132,3 @@ authRoutes.post("/logout", (c) => {
   return c.json({ ok: true });
 });
 
-/** Simple cookie parser — extracts a single cookie by name. */
-function getCookie(c: { req: { header(name: string): string | undefined } }, name: string): string | undefined {
-  const header = c.req.header("cookie");
-  if (!header) return undefined;
-  for (const part of header.split(";")) {
-    const [k, ...v] = part.trim().split("=");
-    if (k === name) return v.join("=");
-  }
-  return undefined;
-}
