@@ -20,6 +20,7 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile --prod
 
 COPY --from=build /app/dist dist
+COPY src/web/server/db/migrations src/web/server/db/migrations
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
