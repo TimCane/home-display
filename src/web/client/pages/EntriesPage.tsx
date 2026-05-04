@@ -52,9 +52,12 @@ function sourceBadge(source: string) {
   );
 }
 
+const PAGE_SIZE = 50;
+
 export function EntriesPage() {
   const { openCreateModal } = useLayoutContext();
-  const entries = trpc.entry.list.useQuery();
+  const [page, setPage] = useState(0);
+  const entries = trpc.entry.list.useQuery({ skip: page * PAGE_SIZE, take: PAGE_SIZE });
   const utils = trpc.useUtils();
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -70,6 +73,8 @@ export function EntriesPage() {
   const displayNowMut = trpc.entry.displayNow.useMutation();
   const lockMut = trpc.system.lock.useMutation();
 
+  const totalPages = entries.data ? Math.ceil(entries.data.total / PAGE_SIZE) : 0;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -80,10 +85,10 @@ export function EntriesPage() {
         </Button>
       </div>
       {entries.isLoading && <p className="text-muted-foreground">Loading...</p>}
-      {entries.data && entries.data.length === 0 && (
+      {entries.data && entries.data.items.length === 0 && (
         <p className="text-muted-foreground">No entries yet.</p>
       )}
-      {entries.data && entries.data.length > 0 && (
+      {entries.data && entries.data.items.length > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -99,7 +104,7 @@ export function EntriesPage() {
               </tr>
             </thead>
             <tbody>
-              {entries.data.map((entry) => (
+              {entries.data.items.map((entry) => (
                 <EntryTableRow
                   key={entry.id}
                   entry={entry as EntryRow}
@@ -123,10 +128,37 @@ export function EntriesPage() {
         </div>
       )}
 
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, entries.data!.total)} of {entries.data!.total}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 0}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages - 1}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Edit Modal */}
       {editingId && entries.data && (
         <EditEntryModal
-          entry={entries.data.find((e) => e.id === editingId) as EntryRow}
+          entry={entries.data.items.find((e) => e.id === editingId) as EntryRow}
           onClose={() => setEditingId(null)}
           onSave={(patch) => updateMut.mutate({ id: editingId, ...patch })}
           isSaving={updateMut.isPending}

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { eq, count } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { router, adminProcedure } from "../trpc.js";
 import { entries, generatorInstances } from "../../db/schema.js";
@@ -7,24 +7,39 @@ import { conditionsArraySchema } from "../../../shared/conditions.js";
 import { displayNow } from "../../scheduler/display-now.js";
 
 export const entryRouter = router({
-  /** List all entries with metadata (no framebuffer bytes). */
-  list: adminProcedure.query(async ({ ctx }) => {
-    return ctx.db
-      .select({
-        id: entries.id,
-        source: entries.source,
-        title: entries.title,
-        submitterName: entries.submitterName,
-        enabled: entries.enabled,
-        baseWeight: entries.baseWeight,
-        conditions: entries.conditions,
-        lastShownAt: entries.lastShownAt,
-        showCount: entries.showCount,
-        createdAt: entries.createdAt,
-        updatedAt: entries.updatedAt,
-      })
-      .from(entries);
-  }),
+  /** List entries with pagination (no framebuffer bytes). */
+  list: adminProcedure
+    .input(
+      z
+        .object({
+          skip: z.number().int().min(0).default(0),
+          take: z.number().int().min(1).max(100).default(50),
+        })
+        .default({ skip: 0, take: 50 }),
+    )
+    .query(async ({ ctx, input }) => {
+      const [items, [{ total }]] = await Promise.all([
+        ctx.db
+          .select({
+            id: entries.id,
+            source: entries.source,
+            title: entries.title,
+            submitterName: entries.submitterName,
+            enabled: entries.enabled,
+            baseWeight: entries.baseWeight,
+            conditions: entries.conditions,
+            lastShownAt: entries.lastShownAt,
+            showCount: entries.showCount,
+            createdAt: entries.createdAt,
+            updatedAt: entries.updatedAt,
+          })
+          .from(entries)
+          .limit(input.take)
+          .offset(input.skip),
+        ctx.db.select({ total: count() }).from(entries),
+      ]);
+      return { items, total };
+    }),
 
   /** Get single entry metadata. */
   get: adminProcedure

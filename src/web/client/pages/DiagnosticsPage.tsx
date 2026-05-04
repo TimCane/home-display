@@ -38,7 +38,7 @@ export function DiagnosticsPage() {
   const flagNames = useMemo(() => {
     if (!entries.data) return [];
     const names = new Set<string>();
-    for (const entry of entries.data) {
+    for (const entry of entries.data.items) {
       const conditions = entry.conditions as Condition[] | null;
       if (!conditions) continue;
       for (const c of conditions) {

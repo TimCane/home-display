@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eq, and, isNull, isNotNull, gt, lte } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, gt, lte, count } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { router, adminProcedure, publicProcedure } from "../trpc.js";
 import { entries, entryDrafts } from "../../db/schema.js";
@@ -43,13 +43,15 @@ export const draftRouter = router({
       return { id: draft.id };
     }),
 
-  /** List drafts with optional status filter (admin-only). */
+  /** List drafts with optional status filter and pagination (admin-only). */
   list: adminProcedure
     .input(
       z.object({
         filter: z
           .enum(["unconsumed", "consumed", "expired", "all"])
           .default("unconsumed"),
+        skip: z.number().int().min(0).default(0),
+        take: z.number().int().min(1).max(100).default(50),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -72,22 +74,35 @@ export const draftRouter = router({
           break;
       }
 
-      return ctx.db
-        .select({
-          id: entryDrafts.id,
-          createdAt: entryDrafts.createdAt,
-          expiresAt: entryDrafts.expiresAt,
-          consumedAt: entryDrafts.consumedAt,
-          guestMode: entryDrafts.guestMode,
-          submitterName: entryDrafts.submitterName,
-          allowedElements: entryDrafts.allowedElements,
-          enabled: entryDrafts.enabled,
-          baseWeight: entryDrafts.baseWeight,
-          conditions: entryDrafts.conditions,
-        })
-        .from(entryDrafts)
-        .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .orderBy(entryDrafts.createdAt);
+      const whereClause =
+        conditions.length > 0 ? and(...conditions) : undefined;
+
+      const [items, [{ total }]] = await Promise.all([
+        ctx.db
+          .select({
+            id: entryDrafts.id,
+            createdAt: entryDrafts.createdAt,
+            expiresAt: entryDrafts.expiresAt,
+            consumedAt: entryDrafts.consumedAt,
+            guestMode: entryDrafts.guestMode,
+            submitterName: entryDrafts.submitterName,
+            allowedElements: entryDrafts.allowedElements,
+            enabled: entryDrafts.enabled,
+            baseWeight: entryDrafts.baseWeight,
+            conditions: entryDrafts.conditions,
+          })
+          .from(entryDrafts)
+          .where(whereClause)
+          .orderBy(entryDrafts.createdAt)
+          .limit(input.take)
+          .offset(input.skip),
+        ctx.db
+          .select({ total: count() })
+          .from(entryDrafts)
+          .where(whereClause),
+      ]);
+
+      return { items, total };
     }),
 
   /** Get a single draft (public; gated by draftGate). */

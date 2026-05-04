@@ -36,14 +36,18 @@ function formatDate(d: Date | string): string {
   return new Date(d).toLocaleString();
 }
 
+const PAGE_SIZE = 50;
+
 export function DraftsPage() {
   const [filter, setFilter] = useState<DraftFilter>("unconsumed");
-  const drafts = trpc.draft.list.useQuery({ filter });
+  const [page, setPage] = useState(0);
+  const drafts = trpc.draft.list.useQuery({ filter, skip: page * PAGE_SIZE, take: PAGE_SIZE });
   const utils = trpc.useUtils();
   const revokeMut = trpc.draft.revoke.useMutation({
     onSuccess: () => utils.draft.list.invalidate(),
   });
   const [qrDraftId, setQrDraftId] = useState<string | null>(null);
+  const totalPages = drafts.data ? Math.ceil(drafts.data.total / PAGE_SIZE) : 0;
 
   const editorUrl = (id: string) => `${window.location.origin}/editor/${id}`;
 
@@ -60,7 +64,7 @@ export function DraftsPage() {
         {FILTERS.map((f) => (
           <button
             key={f}
-            onClick={() => setFilter(f)}
+            onClick={() => { setFilter(f); setPage(0); }}
             className={`rounded-full px-3 py-1 text-sm font-medium border transition-colors ${
               filter === f
                 ? "bg-primary text-primary-foreground"
@@ -74,11 +78,11 @@ export function DraftsPage() {
 
       {drafts.isLoading && <p className="text-muted-foreground">Loading...</p>}
 
-      {drafts.data && drafts.data.length === 0 && (
+      {drafts.data && drafts.data.items.length === 0 && (
         <p className="text-muted-foreground">No drafts match this filter.</p>
       )}
 
-      {drafts.data && drafts.data.length > 0 && (
+      {drafts.data && drafts.data.items.length > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -92,7 +96,7 @@ export function DraftsPage() {
               </tr>
             </thead>
             <tbody>
-              {drafts.data.map((draft) => {
+              {drafts.data.items.map((draft) => {
                 const status = draftStatus(draft);
                 const isActive = status === "active";
                 return (
@@ -154,6 +158,33 @@ export function DraftsPage() {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, drafts.data!.total)} of {drafts.data!.total}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 0}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages - 1}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next
+            </Button>
+          </div>
         </div>
       )}
 
