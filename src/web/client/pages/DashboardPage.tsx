@@ -7,6 +7,35 @@ import { useSystemState } from "../hooks/useSystemState";
 import { Lock, Unlock } from "lucide-react";
 import type { Condition } from "../../shared/conditions";
 
+function UpNextList() {
+  const upcoming = trpc.system.upcoming.useQuery({ count: 5 });
+
+  if (upcoming.isLoading) {
+    return <p className="text-sm text-muted-foreground">Loading...</p>;
+  }
+
+  if (!upcoming.data || upcoming.data.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        No upcoming entries to preview.
+      </p>
+    );
+  }
+
+  return (
+    <ol className="space-y-1.5 text-sm list-none">
+      {upcoming.data.map((entry, i) => (
+        <li key={`${entry.id}-${i}`} className="flex items-center gap-2">
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
+            {i + 1}
+          </span>
+          <span className="truncate">{entry.title}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 export function DashboardPage() {
   const system = useSystemState();
   const entries = trpc.entry.list.useQuery();
@@ -24,7 +53,7 @@ export function DashboardPage() {
   const flagNames = useMemo(() => {
     if (!entries.data) return [];
     const names = new Set<string>();
-    for (const entry of entries.data) {
+    for (const entry of entries.data.items) {
       const conditions = entry.conditions as Condition[] | null;
       if (!conditions) continue;
       for (const c of conditions) {
@@ -39,7 +68,7 @@ export function DashboardPage() {
   const flags = (system.data?.flags ?? {}) as Record<string, boolean>;
   const isLocked = !!system.data?.lockEntryId;
   const currentEntryId = system.data?.currentlyDisplayedEntryId;
-  const currentEntry = entries.data?.find((e) => e.id === currentEntryId);
+  const currentEntry = entries.data?.items.find((e) => e.id === currentEntryId);
   const isOnline = system.data?.displayOnline ?? false;
 
   return (
@@ -143,10 +172,12 @@ export function DashboardPage() {
                 {flagNames.map((name) => (
                   <label
                     key={name}
+                    htmlFor={`dash-flag-${name}`}
                     className="flex items-center justify-between text-sm"
                   >
                     <span>{name}</span>
                     <input
+                      id={`dash-flag-${name}`}
                       type="checkbox"
                       checked={flags[name] ?? false}
                       onChange={(e) =>
@@ -163,6 +194,16 @@ export function DashboardPage() {
             </Card>
           )}
 
+          {/* Up Next */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Up Next</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <UpNextList />
+            </CardContent>
+          </Card>
+
           {/* Stats */}
           <Card>
             <CardHeader>
@@ -175,13 +216,13 @@ export function DashboardPage() {
                 <div className="space-y-1 text-sm">
                   <p>
                     <span className="font-medium">
-                      {entries.data?.length ?? 0}
+                      {entries.data?.total ?? 0}
                     </span>{" "}
                     entries
                   </p>
                   <p>
                     <span className="font-medium">
-                      {entries.data?.filter((e) => e.enabled).length ?? 0}
+                      {entries.data?.items.filter((e) => e.enabled).length ?? 0}
                     </span>{" "}
                     enabled
                   </p>
