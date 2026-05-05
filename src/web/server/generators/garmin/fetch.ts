@@ -4,7 +4,8 @@
  * weekly steps, and recent activities using the garmin-connect package.
  */
 
-import { GarminConnect } from "garmin-connect";
+import pkg from "garmin-connect";
+const { GarminConnect } = pkg;
 
 /* ── Exported data types ───────────────────────────────────────── */
 
