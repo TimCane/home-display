@@ -154,6 +154,28 @@ export async function render5Day(
     ctx.font = "26px Inter";
     ctx.fillText(`${Math.round(day.low)}°`, x + cardW / 2, sepY + 56);
 
+    // Rain chance
+    const rainY = sepY + 92;
+    ctx.font = "bold 18px Inter";
+    ctx.fillStyle = day.rainChance >= 50 ? RED : BLACK;
+    ctx.fillText(`${day.rainChance}%`, x + cardW / 2, rainY);
+
+    // "rain" label
+    ctx.font = "14px Inter";
+    ctx.fillStyle = BLACK;
+    ctx.fillText("rain", x + cardW / 2, rainY + 22);
+
+    // Wind speed
+    const windY = rainY + 46;
+    ctx.font = "bold 18px Inter";
+    ctx.fillStyle = BLACK;
+    ctx.fillText(`${day.windSpeed}`, x + cardW / 2, windY);
+
+    // Wind unit label
+    const windUnit = config.units === "imperial" ? "mph" : "km/h";
+    ctx.font = "14px Inter";
+    ctx.fillText(windUnit, x + cardW / 2, windY + 22);
+
     // Temperature range bar at bottom of card
     const barX = x + 16;
     const barW = cardW - 32;

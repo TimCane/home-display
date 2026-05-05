@@ -97,6 +97,36 @@ export async function renderToday(
   ctx.fillStyle = YELLOW;
   ctx.fillRect(580, 305, 120, 3);
 
+  // Rain chance + wind — two pills side by side below the condition
+  const pillY = 322;
+  const pillH = 34;
+  const pillRadius = pillH / 2;
+  ctx.font = "bold 20px Inter";
+  ctx.textBaseline = "middle";
+
+  // Rain pill
+  const rainText = `${data.today.rainChance}% rain`;
+  const rainW = ctx.measureText(rainText).width + 28;
+  const rainX = 640 - rainW - 6;
+  roundedRectPath(ctx, rainX, pillY, rainW, pillH, pillRadius);
+  ctx.fillStyle = data.today.rainChance >= 50 ? RED : BLACK;
+  ctx.fill();
+  ctx.fillStyle = WHITE;
+  ctx.textAlign = "center";
+  ctx.fillText(rainText, rainX + rainW / 2, pillY + pillH / 2);
+
+  // Wind pill
+  const windUnit = config.units === "imperial" ? "mph" : "km/h";
+  const windText = `${data.today.windSpeed} ${windUnit}`;
+  const windW = ctx.measureText(windText).width + 28;
+  const windX = 640 + 6;
+  roundedRectPath(ctx, windX, pillY, windW, pillH, pillRadius);
+  ctx.fillStyle = BLACK;
+  ctx.fill();
+  ctx.fillStyle = WHITE;
+  ctx.textAlign = "center";
+  ctx.fillText(windText, windX + windW / 2, pillY + pillH / 2);
+
   // ── Hourly forecast (370-665) ──
   const curveTop = 420;
   const curveBottom = 635;

@@ -3,7 +3,7 @@ import * as cron from "node-cron";
 import { eq, desc } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { router, adminProcedure } from "../trpc.js";
-import { entries, generatorInstances, generatorRuns } from "../../db/schema.js";
+import { entries, generatorInstances, generatorRuns, pluginConfigs } from "../../db/schema.js";
 import { listPlugins, getPlugin } from "../../generators/registry.js";
 import {
   registerInstance,
@@ -20,8 +20,62 @@ export const generatorRouter = router({
       name: p.name,
       renderers: Object.keys(p.renderers),
       configSchemaJson: p.configSchema.toJSONSchema(),
+      hasSharedConfig: !!p.sharedConfigSchema,
     }));
   }),
+
+  /** Get shared config for a plugin. */
+  getSharedConfig: adminProcedure
+    .input(z.object({ pluginName: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const [row] = await ctx.db
+        .select()
+        .from(pluginConfigs)
+        .where(eq(pluginConfigs.pluginName, input.pluginName));
+      return (row?.config ?? {}) as Record<string, unknown>;
+    }),
+
+  /** Set shared config for a plugin. */
+  setSharedConfig: adminProcedure
+    .input(
+      z.object({
+        pluginName: z.string().min(1),
+        config: z.record(z.string(), z.unknown()),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const plugin = getPlugin(input.pluginName);
+      if (!plugin) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Plugin "${input.pluginName}" not registered`,
+        });
+      }
+      if (!plugin.sharedConfigSchema) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Plugin "${input.pluginName}" does not support shared config`,
+        });
+      }
+
+      const parseResult = plugin.sharedConfigSchema.safeParse(input.config);
+      if (!parseResult.success) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Invalid shared config: ${parseResult.error.message}`,
+        });
+      }
+
+      await ctx.db
+        .insert(pluginConfigs)
+        .values({ pluginName: input.pluginName, config: input.config })
+        .onConflictDoUpdate({
+          target: pluginConfigs.pluginName,
+          set: { config: input.config },
+        });
+
+      return { ok: true };
+    }),
 
   /** List all generator instances with their last run summary. */
   listInstances: adminProcedure.query(async ({ ctx }) => {
@@ -95,8 +149,19 @@ export const generatorRouter = router({
         });
       }
 
-      // Validate config against plugin schema
-      const parseResult = plugin.configSchema.safeParse(input.config);
+      // Merge shared config (if any) for validation
+      let configToValidate = input.config;
+      if (plugin.sharedConfigSchema) {
+        const [shared] = await ctx.db
+          .select()
+          .from(pluginConfigs)
+          .where(eq(pluginConfigs.pluginName, input.plugin));
+        if (shared) {
+          configToValidate = { ...(shared.config as Record<string, unknown>), ...input.config };
+        }
+      }
+
+      const parseResult = plugin.configSchema.safeParse(configToValidate);
       if (!parseResult.success) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -170,9 +235,20 @@ export const generatorRouter = router({
         });
       }
 
-      // Validate config if changing
+      // Validate config if changing (merge shared config for validation)
       if (input.config && plugin) {
-        const parseResult = plugin.configSchema.safeParse(input.config);
+        let configToValidate = input.config;
+        if (plugin.sharedConfigSchema) {
+          const [shared] = await ctx.db
+            .select()
+            .from(pluginConfigs)
+            .where(eq(pluginConfigs.pluginName, existing.pluginName));
+          if (shared) {
+            configToValidate = { ...(shared.config as Record<string, unknown>), ...input.config };
+          }
+        }
+
+        const parseResult = plugin.configSchema.safeParse(configToValidate);
         if (!parseResult.success) {
           throw new TRPCError({
             code: "BAD_REQUEST",

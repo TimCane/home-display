@@ -78,6 +78,50 @@ The admin diagnostics page surfaces per-instance health: last successful run, la
   - `today_tomorrow` — today and tomorrow's events as a two-column list.
   - `5day` — next five days, agenda style.
 
-## V1 deferred
+### Holiday Weather (open-meteo)
 
-- Tasks plugin. Source decision unresolved; adds new auth surface. Reconsider after V1 ships.
+- Source: [open-meteo](https://open-meteo.com) (free, no API key).
+- Config: `{trips: [{name, location: {lat, lon, name}, startDate, endDate}], units}`.
+- Renderers:
+  - `cards` — card grid of upcoming trips with weather forecasts and countdown.
+
+## V2 plugins
+
+Detailed design docs in [`generators/`](generators/).
+
+### [Bin Collection](generators/bin-collection.md)
+
+- Source: UK council ICS feeds or JSON APIs.
+- Renderers: `next` (next collection, hero layout), `week` (this week's schedule).
+
+### [Quote of the Day](generators/quote.md)
+
+- Source: [ZenQuotes](https://zenquotes.io) (free, no API key).
+- Renderers: `daily` (centered typographic layout).
+
+### [Word of the Day](generators/word-of-the-day.md)
+
+- Source: [Free Dictionary API](https://dictionaryapi.dev/) + curated word list (free, no API key).
+- Renderers: `daily` (dictionary card with word, phonetic, definition, example).
+
+### [On This Day](generators/on-this-day.md)
+
+- Source: [Wikipedia On This Day API](https://api.wikimedia.org/wiki/Feed_API/Reference/On_this_day) (free, no API key).
+- Renderers: `today` (timeline of 3–4 historical events).
+
+### [Astronomy](generators/astronomy.md)
+
+- Source: [open-meteo](https://open-meteo.com) + local moon phase calculation (free, no API key).
+- Renderers: `today` (sun arc, sunrise/sunset, daylight change, moon phase, golden hour).
+
+### [Pollen & Air Quality](generators/pollen-aqi.md)
+
+- Source: [Open-Meteo Air Quality API](https://open-meteo.com/en/docs/air-quality-api) (free, no API key).
+- Renderers: `today` (AQI gauge, pollutant readings, pollen bars).
+
+## V2 deferred
+
+- **Tasks plugin.** Source decision unresolved; adds new auth surface. Reconsider after V2 ships.
+- **Marine / Surf.** Open-Meteo has a [Marine API](https://open-meteo.com/en/docs/marine-weather-api) with wave height, swell period/direction, and sea surface temperature. Would make a good plugin for coastal locations but niche — revisit if there's demand.
+- **Flood risk.** Open-Meteo has a [Flood API](https://open-meteo.com/en/docs/flood-api) with river discharge forecasts (GloFAS data, 5 km resolution). Useful near rivers but very niche.
+- **Climate trends.** Open-Meteo has a [Climate Change API](https://open-meteo.com/en/docs/climate-api) with downscaled IPCC projections. Interesting for a "this month vs historical average" comparison but the display cadence (daily/weekly) doesn't suit long-term projections well.

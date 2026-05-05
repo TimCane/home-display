@@ -26,7 +26,10 @@ export function FramebufferImage({
 
     async function load() {
       try {
-        const res = await fetch(`/api/framebuffer/${entryId}`, {
+        const url = updatedAt
+          ? `/api/framebuffer/${entryId}?v=${typeof updatedAt === "string" ? updatedAt : updatedAt.toISOString()}`
+          : `/api/framebuffer/${entryId}`;
+        const res = await fetch(url, {
           credentials: "include",
         });
         if (!res.ok || cancelled) return;

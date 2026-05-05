@@ -12,6 +12,8 @@ export interface WeatherData {
     high: number;
     low: number;
     weatherCode: number;
+    rainChance: number;       // 0-100 %
+    windSpeed: number;        // km/h or mph
   };
   hourly: Array<{ hour: number; temperature: number }>;
   daily: Array<{
@@ -19,6 +21,8 @@ export interface WeatherData {
     high: number;
     low: number;
     weatherCode: number;
+    rainChance: number;       // 0-100 %
+    windSpeed: number;        // km/h or mph
   }>;
 }
 
@@ -36,6 +40,8 @@ interface OpenMeteoResponse {
     temperature_2m_max: number[];
     temperature_2m_min: number[];
     weather_code: number[];
+    precipitation_probability_max: number[];
+    wind_speed_10m_max: number[];
   };
 }
 
@@ -51,7 +57,7 @@ export async function fetchWeather(
   url.searchParams.set("longitude", String(lon));
   url.searchParams.set("current", "temperature_2m,weather_code");
   url.searchParams.set("hourly", "temperature_2m");
-  url.searchParams.set("daily", "temperature_2m_max,temperature_2m_min,weather_code");
+  url.searchParams.set("daily", "temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max,wind_speed_10m_max");
   url.searchParams.set("temperature_unit", tempUnit);
   url.searchParams.set("timezone", timezone);
   url.searchParams.set("forecast_days", "5");
@@ -87,6 +93,8 @@ export async function fetchWeather(
     high: json.daily.temperature_2m_max[i],
     low: json.daily.temperature_2m_min[i],
     weatherCode: json.daily.weather_code[i],
+    rainChance: json.daily.precipitation_probability_max[i] ?? 0,
+    windSpeed: Math.round(json.daily.wind_speed_10m_max[i] ?? 0),
   }));
 
   return {
@@ -98,6 +106,8 @@ export async function fetchWeather(
       high: daily[0].high,
       low: daily[0].low,
       weatherCode: daily[0].weatherCode,
+      rainChance: daily[0].rainChance,
+      windSpeed: daily[0].windSpeed,
     },
     hourly,
     daily,

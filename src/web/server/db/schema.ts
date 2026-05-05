@@ -92,6 +92,13 @@ export const generatorInstances = pgTable("generator_instances", {
     .references(() => entries.id, { onDelete: "cascade" }),
 });
 
+// ─── plugin_configs ─────────────────────────────────────────────────────────
+
+export const pluginConfigs = pgTable("plugin_configs", {
+  pluginName: text("plugin_name").primaryKey(),
+  config: jsonb().notNull().default({}),
+});
+
 // ─── system_state ───────────────────────────────────────────────────────────
 
 export const systemState = pgTable("system_state", {

@@ -9,7 +9,7 @@
 import * as cron from "node-cron";
 import { eq } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { entries, generatorInstances, generatorRuns } from "../db/schema.js";
+import { entries, generatorInstances, generatorRuns, pluginConfigs } from "../db/schema.js";
 import { getPlugin } from "./registry.js";
 import { FRAME_BYTES } from "../../shared/framebuffer.js";
 import { logger } from "../logger.js";
@@ -36,8 +36,21 @@ async function executeRun(instanceId: string): Promise<void> {
   }
 
   try {
-    // Validate config against plugin schema
-    const config = plugin.configSchema.parse(instance.config);
+    // Load shared plugin config if plugin declares one
+    let mergedRawConfig = instance.config as Record<string, unknown>;
+    if (plugin.sharedConfigSchema) {
+      const [row] = await db
+        .select()
+        .from(pluginConfigs)
+        .where(eq(pluginConfigs.pluginName, instance.pluginName));
+
+      if (row) {
+        mergedRawConfig = { ...(row.config as Record<string, unknown>), ...mergedRawConfig };
+      }
+    }
+
+    // Validate merged config against plugin schema
+    const config = plugin.configSchema.parse(mergedRawConfig);
 
     // Fetch external data
     const data = await plugin.fetch(config);

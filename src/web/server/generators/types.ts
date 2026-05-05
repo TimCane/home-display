@@ -8,6 +8,13 @@ export interface GeneratorPlugin<C = unknown> {
   /** Unique name, e.g. "weather", "calendar". */
   name: string;
 
+  /**
+   * Optional Zod schema for shared plugin-level config (e.g. credentials).
+   * Stored once per plugin in the `plugin_configs` table and merged with
+   * per-instance config before passing to fetch/renderers.
+   */
+  sharedConfigSchema?: ZodType;
+
   /** Zod schema that validates the per-instance config JSON. */
   configSchema: ZodType<C>;
 
