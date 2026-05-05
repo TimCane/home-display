@@ -264,7 +264,7 @@ function defaultConfigForPlugin(pluginName: string): Record<string, unknown> {
     case "bin-collection":
       return { source_type: "woking", council_name: "Woking Borough Council", house_number: "", postcode: "" };
     case "garmin":
-      return { username: "", password: "" };
+      return {};
     default:
       return {};
   }

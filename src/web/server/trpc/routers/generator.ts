@@ -156,9 +156,13 @@ export const generatorRouter = router({
           .select()
           .from(pluginConfigs)
           .where(eq(pluginConfigs.pluginName, input.plugin));
-        if (shared) {
-          configToValidate = { ...(shared.config as Record<string, unknown>), ...input.config };
+        if (!shared) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Plugin settings not configured yet. Click "Plugin Settings" to set up ${input.plugin} credentials first.`,
+          });
         }
+        configToValidate = { ...(shared.config as Record<string, unknown>), ...input.config };
       }
 
       const parseResult = plugin.configSchema.safeParse(configToValidate);
@@ -243,9 +247,13 @@ export const generatorRouter = router({
             .select()
             .from(pluginConfigs)
             .where(eq(pluginConfigs.pluginName, existing.pluginName));
-          if (shared) {
-            configToValidate = { ...(shared.config as Record<string, unknown>), ...input.config };
+          if (!shared) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Plugin settings not configured yet. Click "Plugin Settings" to set up ${existing.pluginName} credentials first.`,
+            });
           }
+          configToValidate = { ...(shared.config as Record<string, unknown>), ...input.config };
         }
 
         const parseResult = plugin.configSchema.safeParse(configToValidate);
